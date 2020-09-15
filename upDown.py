@@ -78,9 +78,9 @@ def height(P, x):
         x_dwnst_sub_dag = nx.subgraph(P, x_dwnst)
         return nx.dag_longest_path_length(x_dwnst_sub_dag)
     
-def hasse(P):
+def hasse(P, pos=None):
     '''
-    Returns the hasse diagram.
+    Plots the hasse diagram. Returns the position of the vertices.
     '''
     # vertical cooridnates
     vertical = {x: height(P,x) for x in nx.nodes(P)}
@@ -88,7 +88,8 @@ def hasse(P):
     # nonnegative integers starting from 0 we must force such a scaling.
     horizontal = {x: i for i,x in enumerate(nx.nodes(P))}
     # coordinate positions of vertices in hasse
-    pos = {x:(horizontal[x],vertical[x]) for x in nx.nodes(P)}
+    if pos == None:    
+        pos = {x:(horizontal[x],vertical[x]) for x in nx.nodes(P)}
     # convert coloring to actual colors while grouping together elements 
     # of same color 
     colors = {'b':set(), 'g': set(), 'r': set()}
@@ -109,6 +110,8 @@ def hasse(P):
     nx.draw_networkx_edges(P, pos, arrows = False,)
     #draw vertex labels
     nx.draw_networkx_labels(P, pos,)
+    
+    return pos
         
 def randomPoset(n, colored = False):
     '''
@@ -198,7 +201,7 @@ def graphPoset(G):
 class UpDown(object):
     '''
     Abstract class for constructing an upset downset game from a directed 
-    acyclic graph with vertices colored re-d, green or blue. 
+    acyclic graph with vertices colored red, green or blue. 
     (I.e., a finite poset with elements colored red, greeen or blue.)
     '''
     def __init__(self, P):
@@ -327,13 +330,14 @@ class UpDown(object):
             
     def gameboard(self):
         '''
-        Plots the gameboard.
+        Plots the gameboard. Returns position of the vertices.
         '''
-        hasse(self.poset)
+        return hasse(self.poset)
         
     def play(self): #NEEDS LOTS OF WORK IM NOT SURE WHAT I DID TO IT!!!!!!!
         '''
-        Plays a game of UpDown
+        Plays a game of UpDown. Sets the position to be the starting position
+        of the gameboard.
         '''
         players = ['Up', 'Down']
         first = input("Which player will start, 'Up' or 'Down'? ")       
@@ -345,53 +349,62 @@ class UpDown(object):
             first_colors, second_colors = {0,1}, {-1,0}
         else:
             first_colors, second_colors = {-1,0}, {0,1}
-        colors = {x:self.poset.nodes[x]['color'] \
-                  for x in nx.nodes(self.poset)}
+
+                        
         i = 0      
-        while self.poset.nodes():  
-            self.gameboard()
-            plt.show()
-            #if set(colors.values()) == {1} or set(colors.values()) == {-1}:
-                #break #FIX THIS
-            #first players turn
-            if i % 2 == 0:
-                u = int(input(first + ", choose a node: "))
-                while u not in self.poset.nodes():
-                    print(u, " is not a valid choice.")
-                    u = int(input(first + ", choose a valid node: "))
-                while self.poset.nodes[u]['color'] not in first_colors:
-                    print(u, " is not a valid choice.")
-                    u = int(input(first + " choose a valid node: "))
-                if first == 'Up':
-                    for x in upset(self.poset,u):
-                        del colors[x]
+        pos = self.gameboard()
+        plt.show()
+        while self.poset.nodes():           
+            first_options = list(filter(lambda x : self.poset.nodes[x]['color'] in first_colors, \
+                  self.poset.nodes()))
+            second_options = list(filter(lambda x : self.poset.nodes[x]['color'] in second_colors, \
+                  self.poset.nodes()))
+                
+            if not first_options:
+                i=0
+                break
+                
+            if not second_options:
+                i=1
+                break
+                
+            if first == "Up":
+                if i % 2 == 0:
+                    u = int(input(first + ", choose a Blue or Green node: "))
+                    while not (u in first_options):
+                        print(u, " is not a valid choice.")
+                        u = int(input(first + ", choose a Blue or Green node: ")) 
                     self = self.upOptions()[u]
+                #second players turn
                 else:
-                    for x in downset(self.poset,u):
-                        del colors[x]
+                    u = int(input(second + ", choose a Red or Green node: "))
+                    while not (u in second_options):
+                        print(u, " is not a valid choice.")
+                        u = int(input(second + ", choose a valid Red or Green node: "))
                     self = self.downOptions()[u]
-            #second players turn
+                    
             else:
-                u = int(input(second + ", choose a node: "))
-                while u not in self.poset.nodes():
-                    print(u, " is not a valid choice.")
-                    u = int(input(second + ", choose a valid node: "))
-                while self.poset.nodes[u]['color'] not in second_colors:
-                    print(u, " is not a valid choice.")
-                    u = int(input(second + ", choose a valid node: "))
-                if second == 'Up':
-                    for x in upset(self.poset,u):
-                        del colors[x]
-                    self = self.upOptions()[u]
-                else:
-                    for x in downset(self.poset,u):
-                        del colors[x]
+                if i % 2 == 0:
+                    u = int(input(first + ", choose a Red or Green node: "))
+                    while not (u in first_options):
+                        print(u, " is not a valid choice.")
+                        u = int(input(first + ", choose a Red or Green node: ")) 
                     self = self.downOptions()[u]
+                #second players turn
+                else:
+                    u = int(input(second + ", choose a Blue or Green node: "))
+                    while not (u in second_options):
+                        print(u, " is not a valid choice.")
+                        u = int(input(second + ", choose a valid Blue or Green node: "))
+                    self = self.upOptions()[u]
             i += 1
+            hasse(self.poset, pos=pos)
+            plt.show()
+            
         if i % 2 == 0:
-            print(second, ", wins!")
+            print(second + ", wins!")
         else:
-            print(first, ", wins!")
+            print(first + ", wins!")
             
 # Subclasses of UpDown      
 class RandomUpDown(UpDown):
