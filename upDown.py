@@ -32,7 +32,7 @@ import copy
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-
+import HarryPlotter as hp
 
 # Functions on posets: as of right now we use the networkx digraph to 
 # represent a partially ordered set.
@@ -65,7 +65,7 @@ def coloredDual(P):
 
 def disjointUnion(P,Q):
     '''
-    Returns the disjoint uniomn of P and Q.
+    Returns the disjoint union of P and Q.
     '''
     return nx.disjoint_union(P,Q)
 
@@ -333,12 +333,25 @@ class UpDown(object):
         Plots the gameboard. Returns position of the vertices.
         '''
         return hasse(self.poset)
+    
+    def get_height(self):
+        '''
+        Returns the number of levels -1
+
+        '''
+        x = 0
+        for i in self.poset.nodes():
+            if x < height(self.poset, i):
+                x = height(self.poset, i)
+        return x
         
-    def play(self): #NEEDS LOTS OF WORK IM NOT SURE WHAT I DID TO IT!!!!!!!
+    def play(self):
         '''
         Plays a game of UpDown. Sets the position to be the starting position
         of the gameboard.
         '''
+        plt.clf()
+        plt.ioff()
         players = ['Up', 'Down']
         first = input("Which player will start, 'Up' or 'Down'? ")       
         while first not in players:
@@ -349,11 +362,12 @@ class UpDown(object):
             first_colors, second_colors = {0,1}, {-1,0}
         else:
             first_colors, second_colors = {-1,0}, {0,1}
-
                         
-        i = 0      
-        pos = self.gameboard()
-        plt.show()
+        i = 0
+        fig_info = hp.harry_plotter(self)
+        plt.close(1)
+        fig_info[0].suptitle("GAME")
+        plt.pause(0.01)
         while self.poset.nodes():           
             first_options = list(filter(lambda x : self.poset.nodes[x]['color'] in first_colors, \
                   self.poset.nodes()))
@@ -374,14 +388,21 @@ class UpDown(object):
                     while not (u in first_options):
                         print(u, " is not a valid choice.")
                         u = int(input(first + ", choose a Blue or Green node: ")) 
-                    self = self.upOptions()[u]
+                    sub_game = self.upOptions()[u]
+                    hp.figure_subgraph(sub_game, fig_info)
+                    self = sub_game
+                    plt.pause(0.01)
+                    
                 #second players turn
                 else:
                     u = int(input(second + ", choose a Red or Green node: "))
                     while not (u in second_options):
                         print(u, " is not a valid choice.")
                         u = int(input(second + ", choose a valid Red or Green node: "))
-                    self = self.downOptions()[u]
+                    sub_game = self.downOptions()[u]
+                    hp.figure_subgraph(sub_game, fig_info)
+                    self = sub_game
+                    plt.pause(0.01)
                     
             else:
                 if i % 2 == 0:
@@ -389,23 +410,29 @@ class UpDown(object):
                     while not (u in first_options):
                         print(u, " is not a valid choice.")
                         u = int(input(first + ", choose a Red or Green node: ")) 
-                    self = self.downOptions()[u]
+                    sub_game = self.downOptions()[u]
+                    hp.figure_subgraph(sub_game, fig_info)
+                    self = sub_game
+                    plt.pause(0.01)
                 #second players turn
                 else:
                     u = int(input(second + ", choose a Blue or Green node: "))
                     while not (u in second_options):
                         print(u, " is not a valid choice.")
                         u = int(input(second + ", choose a valid Blue or Green node: "))
-                    self = self.upOptions()[u]
+                    sub_game = self.upOptions()[u]
+                    hp.figure_subgraph(sub_game, fig_info)
+                    self = sub_game
+                    plt.pause(0.01)
             i += 1
-            hasse(self.poset, pos=pos)
-            plt.show()
             
         if i % 2 == 0:
             print(second + ", wins!")
+            fig_info[0].suptitle(second + ", wins!")
         else:
             print(first + ", wins!")
-            
+            fig_info[0].suptitle(first + ", wins!")
+        plt.pause(0.01)
 # Subclasses of UpDown      
 class RandomUpDown(UpDown):
     '''
