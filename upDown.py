@@ -427,11 +427,11 @@ class UpDown(object):
             i += 1
             
         if i % 2 == 0:
-            print(second + ", wins!")
-            fig_info[0].suptitle(second + ", wins!")
+            print(second + " wins!")
+            fig_info[0].suptitle(second + " wins!")
         else:
-            print(first + ", wins!")
-            fig_info[0].suptitle(first + ", wins!")
+            print(first + " wins!")
+            fig_info[0].suptitle(first + " wins!")
         plt.pause(0.01)
 # Subclasses of UpDown      
 class RandomUpDown(UpDown):
