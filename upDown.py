@@ -364,7 +364,7 @@ class UpDown(object):
             first_colors, second_colors = {-1,0}, {0,1}
                         
         i = 0
-        fig_info = hp.harry_plotter(self, marker='o')
+        fig_info = hp.harry_plotter(self, marker=marker)
         plt.close(1)
         fig_info[0].suptitle("GAME")
         plt.pause(0.01)
