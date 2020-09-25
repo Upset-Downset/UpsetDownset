@@ -8,7 +8,7 @@ Created on Thu Sep 24 08:13:51 2020
 import upDown as uD
 import matplotlib.pyplot as plt
 
-def harry_plotter(UD):
+def harry_plotter(UD, marker='o'):
     """
     A plotting wizard for a DAG (directed acyclic graph)
 
@@ -61,7 +61,7 @@ def harry_plotter(UD):
                 fig_edges[(dag[j][0]), i[0]] = ax.lines[-1]
                     
     for i in dag:
-        ax.plot(i[0],i[1], marker='o', color=i[2], markersize=18)
+        ax.plot(i[0],i[1], marker=marker, color=i[2], markersize=18)
         ax.annotate(str(i[0]), xy=(i[0]-.025,i[1]-.025))
         fig_vertices[i[0]] = ax.lines[-1]
         fig_vertex_labels[i[0]] = ax.texts[-1]
