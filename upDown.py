@@ -345,7 +345,7 @@ class UpDown(object):
                 x = height(self.poset, i)
         return x
         
-    def play(self):
+    def play(self, marker='o'):
         '''
         Plays a game of UpDown. Sets the position to be the starting position
         of the gameboard.
@@ -364,7 +364,7 @@ class UpDown(object):
             first_colors, second_colors = {-1,0}, {0,1}
                         
         i = 0
-        fig_info = hp.harry_plotter(self)
+        fig_info = hp.harry_plotter(self, marker='o')
         plt.close(1)
         fig_info[0].suptitle("GAME")
         plt.pause(0.01)
