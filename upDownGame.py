@@ -8,6 +8,7 @@ Created on Thu Sep 24 10:16:36 2020
 import upDown as uD
 import matplotlib.pyplot as plt
 
+marker = 'o'
 cont = 'y'
 same_game = 'n'
 while cont == 'y':
