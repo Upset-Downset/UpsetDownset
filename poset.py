@@ -9,9 +9,8 @@ import dagUtility as dag
 
 class Poset(object):
     def __init__(self, relations, coloring, labels = None, cover = False):
-        ''' Class for construction of posets with blue-green-red coloring.
-         
-        Not to be accessed directly, but through the subclass heirarchy via 
+        ''' Class for construction of posets with blue-green-red coloring. Not 
+        to be accessed directly, but through the subclass heirarchy via 
         creation of a Poset sublass on a specific poset or family of posets.
     
         Parameters
@@ -44,7 +43,7 @@ class Poset(object):
 
         Returns
         -------
-        Poset object
+        None
 
         '''
         if not cover:

@@ -11,13 +11,11 @@ import random
 import dagUtility as dag
 
 class randomPoset(Poset):
-    '''
-    Constructor for a game of upset-downset played on a randomly generated poset.
-    
-    Not to be accessed directly, but via the randomGame class.
+    ''' Constructor for a game of upset-downset played on a randomly generated 
+    poset. Not to be accessed directly, but via the randomGame class.
     '''
     def __init__(self, n, coloring):
-        '''  Initializesa randomly generated poset of cardinality 'n'.
+        ''' Initializes a randomly generated poset of cardinality 'n'.
     
         Parameters
         ----------
@@ -29,7 +27,7 @@ class randomPoset(Poset):
             
         Return
         -------
-        Poset object
+        None
 
         '''
         relations = {i:[] for i in range(n)}
@@ -58,7 +56,8 @@ class randomPoset(Poset):
         Poset.__init__(self, relations, coloring, cover = True)
 
 class RandomGame(UpDown):
-    ''' Constructor for a game of upset-downset played ona randomly generated poset.
+    ''' Constructor for a game of upset-downset played ona randomly generated 
+    poset.
     '''
     def __init__(self, n, coloring = 'all green'):
         ''' Initializes a randomly generated game of upset-downset.
@@ -74,7 +73,7 @@ class RandomGame(UpDown):
 
         Returns
         -------
-        RandomUpDown object
+        None
 
         '''
         poset = randomPoset(n, coloring)   

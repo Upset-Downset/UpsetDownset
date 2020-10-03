@@ -12,10 +12,8 @@ import HarryPlotter as hp
 
 class UpDown(object):
     ''' Abstract class for construction of an upset downset game from 
-    red-green-blue colored poset. 
-    
-    Not to be accessed directly, but through the subclass heirarchy via 
-    creation of an UpDown sublass.
+    red-green-blue colored poset. Not to be accessed directly, but through 
+    the subclass heirarchy via creation of an UpDown sublass.
     '''
     def __init__(self, poset):
         '''
@@ -25,8 +23,7 @@ class UpDown(object):
  
         Returns
         -------
-        upDown object
-             game of upset-downset on 'poset'.
+        None
 
         '''
         self._poset = poset
