@@ -11,19 +11,20 @@ import random
 import dagUtility as dag
 
 class randomPoset(Poset):
-    ''' Constructor for a game of upset-downset played on a randomly generated 
-    poset. Not to be accessed directly, but via the randomGame class.
+    ''' Subclass of Poset for randomly generated red-green-bue colored posets. 
+    Not to be accessed directly, but via the randomGame class.
     '''
     def __init__(self, n, coloring):
-        ''' Initializes a randomly generated poset of cardinality 'n'.
+        ''' Initializes a randomly generated poset of cardinality 'n' w/ 
+        'coloring'.
     
         Parameters
         ----------
         n : int
             The cardinality of the poset. 
-        coloring : dict
-             coloring map: colors keyed by element, where 1 (resp. 0,-1) 
-             represent blue (resp. green, red). 
+        coloring : str
+             'random' for a randomly generated coloring and 'all green'  for 
+             an all green coloring. 
             
         Return
         -------
@@ -56,11 +57,12 @@ class randomPoset(Poset):
         Poset.__init__(self, relations, coloring, cover = True)
 
 class RandomGame(UpDown):
-    ''' Constructor for a game of upset-downset played ona randomly generated 
-    poset.
+    ''' Subclass of Updaown for games of upset-downset on randomly generated 
+    red-blue-green posets.
     '''
     def __init__(self, n, coloring = 'all green'):
-        ''' Initializes a randomly generated game of upset-downset.
+        ''' Initializes a game of upset-downset on a randomly generated poset 
+        of cardinality 'n'. Optionally colored by 'random' of 'all green' by default.
         
         Parameters
         ----------

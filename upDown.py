@@ -11,9 +11,9 @@ import poset as pst
 import HarryPlotter as hp
 
 class UpDown(object):
-    ''' Abstract class for construction of an upset downset game from 
-    red-green-blue colored poset. Not to be accessed directly, but through 
-    the subclass heirarchy via creation of an UpDown sublass.
+    ''' Abstract class for construction of an upset-downset game. Not to be 
+    accessed directly, but through the subclass heirarchy via creation of an 
+    UpDown sublass on a specific game or family of games (**See randomUpDown)
     '''
     def __init__(self, poset):
         '''
@@ -49,13 +49,13 @@ class UpDown(object):
             
         '''
         up_options = {}
-        nodes = set(self._poset.elements())
+        nodes = set(self.poset().elements())
         for x in nodes:
-            if self._poset.color(x) in {0,1}:
-                upset = set(self._poset.upset(x))
+            if self.poset().color(x) in {0,1}:
+                upset = set(self.poset().upset(x))
                 option_nodes = nodes-upset
                 option_nodes = list(option_nodes)
-                option_poset = self._poset.subposet(option_nodes) 
+                option_poset = self.poset().subposet(option_nodes) 
                 up_options[x] = UpDown(option_poset)
         return up_options
 
@@ -70,13 +70,13 @@ class UpDown(object):
             
         '''
         down_options = {}
-        nodes = set(self._poset.elements())
+        nodes = set(self.poset().elements())
         for x in nodes:
-            if self._poset.color(x) in {-1,0}:
-                downset = set(self._poset.downset(x))
+            if self.poset().color(x) in {-1,0}:
+                downset = set(self.poset().downset(x))
                 option_nodes = nodes-downset
                 option_nodes = list(option_nodes)
-                option_poset = self._poset.subposet(option_nodes) 
+                option_poset = self.poset().subposet(option_nodes) 
                 down_options[x] = UpDown(option_poset)
         return down_options
     
@@ -215,11 +215,11 @@ class UpDown(object):
             'Down', Down corce a win playing first or second. 
 
         '''
-        n = len(self._poset)
-        e = self._poset.coverSum() 
+        n = len(self.poset())
+        e = self.poset().coverSum() 
         N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
         # Base cases for recursion
-        colors_sum = self._poset.colorSum() 
+        colors_sum = self.poset().colorSum() 
         if e == 0:
             if colors_sum == 0:
                 if n%2 == 0:

@@ -1,14 +1,70 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Algorithms for diredted (acyclic) graphs provided as utility for the UpDown class.
+Algorithms for diredted (acyclic) graphs provided as utility for Poset class.
+
+We identify posets with dags as usual:
+         nodes of dag <----> elements of poset 
+         reachability in dag <----> relation in poset 
+         (b reahcbale from a in dag <----> a<b in poset)
+    
 (As noted in their docstrings, a number of the algorithms require acyclicity.
 As this condition is checked via the isAcyclic() function upon instantiation of 
-an upDown object we don't check for it here.)
+a Poset object we don't check for it here.)
 
 @author: Charlie 
 """
 import random
+
+def integerRelabel(G):
+    ''' Relabels nodes for directed graph 'G' by consecutive nonnegative
+    integers staring from 0. (Not in place.)
+
+    Parameters
+    ----------
+    G : dict
+        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        by node.)
+
+    Returns
+    -------
+    dict (of dicts)
+        the relabellung has two keys: 'relabelled' which is an adjacecny representation 
+        the directed graph 'G' (adjacecny lists keyed by node) with nodes relabelled 
+        by consecutive nonnegative integers staring from 0 and 'relabel map' 
+        which is the relabelling map, old labels keyed by new labels. 
+
+    '''
+    relabelling = {'relabelled': None, 'relabel map': None}
+    n = len(G)
+    ints = set(i for i in range(n))
+    nodes = set(G)
+    # if already labelled by consecutive integers staring from 0.
+    if  ints == nodes:
+        old_new = {i:i for i in range(n)}
+        relabelling['relabelled'], relabelling['relabel map'] = G, old_new
+        return relabelling
+    # Otherwise we need to actually relabel.
+    new_old = {}
+    old_new = {}
+    G_new = {i:[] for i in range(n)}
+    int_label = 0
+    for v in G:
+        new_old[int_label] = v
+        old_new[v] =int_label
+        int_label +=1
+    for i in range(n):
+        v = new_old[i]
+        for u in G[v]:
+            j = old_new[u]
+            G_new[i].append(j)
+    relabelling['relabelled'] = G_new
+    relabelling['relabel map'] = new_old    
+    return relabelling
+        
+        
+    
+        
 
 def subgraph(G, nodes):
     ''' Returns the subgraph of the directed graph 'G' on 'nodes'.
