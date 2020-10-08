@@ -11,6 +11,18 @@ import dagUtility as dag
 import random
 
 def random_poset_relations(n):
+    '''
+    Parameters
+    ----------
+    n : int (nonnegative)
+        number of elements in the poset.
+
+    Returns
+    -------
+    dict
+        cover relations for poset. List of (upper) covers keyed by element.
+
+    '''
     random_relations = {i:[] for i in range(n)}
     # Randomy choose the number of relations to include. (Between 0 and 
     # n(n-1)/2 since this is the maximum number of edges possible in a dag 
@@ -39,8 +51,8 @@ class RandomGame(UpDown):
     '''
     def __init__(self, n, colored = False):
         ''' Initializes a game of upset-downset on a randomly generated poset 
-        of cardinality 'n'. Optionally, colored randomly and 'all green' by 
-        default.
+        of cardinality 'n'. Optionally colored, all green by default and randomly 
+        otherwise.
         
         Parameters
         ----------

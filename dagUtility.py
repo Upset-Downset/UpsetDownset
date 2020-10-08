@@ -4,10 +4,6 @@
 Algorithms for diredted (acyclic) graphs provided as utility for the UpDown 
 class.
 
-We identify dags with posets as usual:
-         nodes of dag <----> elements of poset 
-         reachability in dag <----> relation in poset 
-         (b reahcbale from a in dag <----> a<b in poset)
     
 (As noted in their docstrings, a number of the algorithms require acyclicity.
 As this condition is checked via the is_acyclic() function upon instantiation of 
