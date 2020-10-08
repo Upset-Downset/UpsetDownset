@@ -1,355 +1,339 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jul 25 11:15:10 2020
-
-Last edited by Charlie: Aug 13 20:58 2020
+Created on Mon Sep 28 22:41:10 2020
 
 @author: Charlie & Jamison
-
-Let P be a finite poset with coloring c:P-> {-1,0,1} where 1 (resp. 0,-1) 
-represent blue (resp. green, red). The Upset Downset game on P is the 
-short partizan combinatorial game with the following possible moves: 
-    - For any element x in P colored blue or green, Left (Up) may remove the 
-    upset >x of x leaving the colored poset P - >x, 
-    - and for x in P colored red or green, Right (Down) may remove the downset
-    <x of x leaving the colored poset P - <x.
-The first player unable to move loses. 
-
-**Upset Downset is usually played on the Hasse diagram of P. The available 
-moves for Up and Down are then:
-    - Up may choose to remove any blue or green colored vertex on the Hasse 
-    diagram of P along with all vertices connected to it by a path moving 
-    strictly upward. 
-    - Down may choose to remove any red or green colored vertex on the Hasse 
-    diagram of P along with all vertices connected to it by a path moving 
-    strictly downward.
-The first player who cannot remove any vertices loses.
 """
 
-import random
-import copy
-import networkx as nx
-import matplotlib.pyplot as plt
-import numpy as np
+import dagUtility as dag
 import HarryPlotter as hp
+import matplotlib.pyplot as plt
 
-# Functions on posets: as of right now we use the networkx digraph to 
-# represent a partially ordered set.
-def upset(P, x):
-    '''
-    Returns the upset >x of x in P.
-    '''
-    upst = nx.descendants(P, x)
-    upst.add(x)
-    return upst
-
-def downset(P, x):
-    
-    '''
-    Returns the downset <x of of x in P.
-    '''
-    dwnst = nx.ancestors(P, x)
-    dwnst.add(x)
-    return dwnst
-
-def coloredDual(P):
-    '''
-    Returns the colored dual of P. (If P has coloring c, then the colored 
-    dual of P has coloring -c.)
-    '''
-    C = P.copy()
-    for x in nx.nodes(C):
-        C.nodes[x]['color'] = - P.nodes[x]['color']
-    return nx.reverse(C) 
-
-def disjointUnion(P,Q):
-    '''
-    Returns the disjoint union of P and Q.
-    '''
-    return nx.disjoint_union(P,Q)
-
-def height(P, x):
-        '''
-        Returns the height of the element x. (The length of the longest chain 
-        in the downset of x.)
-        '''
-        x_dwnst = downset(P, x)
-        x_dwnst_sub_dag = nx.subgraph(P, x_dwnst)
-        return nx.dag_longest_path_length(x_dwnst_sub_dag)
-    
-def hasse(P, pos=None):
-    '''
-    Plots the hasse diagram. Returns the position of the vertices.
-    '''
-    # vertical cooridnates
-    vertical = {x: height(P,x) for x in nx.nodes(P)}
-    # horizontal coordinates: if elements are not labelled by consecutive 
-    # nonnegative integers starting from 0 we must force such a scaling.
-    horizontal = {x: i for i,x in enumerate(nx.nodes(P))}
-    # coordinate positions of vertices in hasse
-    if pos == None:    
-        pos = {x:(horizontal[x],vertical[x]) for x in nx.nodes(P)}
-    # convert coloring to actual colors while grouping together elements 
-    # of same color 
-    colors = {'b':set(), 'g': set(), 'r': set()}
-    for x in nx.nodes(P):
-        if P.nodes[x]['color'] == 1:
-            colors['b'].add(x)
-        elif P.nodes[x]['color']  == 0:
-            colors['g'].add(x)
-        else:
-            colors['r'].add(x)
-    # create plot
-    plt.figure(figsize = (12,12), frameon = False)
-    # draw vertices
-    nx.draw_networkx_nodes(P, pos, nodelist = colors['b'], node_color = 'b')
-    nx.draw_networkx_nodes(P, pos, nodelist = colors['g'], node_color = 'g')
-    nx.draw_networkx_nodes(P, pos, nodelist = colors['r'], node_color = 'r')
-    # draw edges
-    nx.draw_networkx_edges(P, pos, arrows = False,)
-    #draw vertex labels
-    nx.draw_networkx_labels(P, pos,)
-    
-    return pos
-        
-def randomPoset(n, colored = False):
-    '''
-    Returns a randomly generated poset with n elements lablelled 0,2,..., n-1. 
-    Optionally colored, all green by default.
-    '''
-    # Initialize coloring.
-    if colored == True:
-        colors = [-1, 0, 1]
-    else:
-        colors = [0]
-    #initialize empty DAG and return if no vertices.
-    G = nx.DiGraph()
-    if n == 0:
-        return G
-    # Add vertcies, color and return if only one vertex.
-    for i in range(n):
-        G.add_node(i, color = random.choice(colors))
-    if n == 1:
-        return G
-    # Randomy choose the number of edges.
-    e = random.randint(n, 2*n)
-    #add edges. 
-    while e > 0:
-        #pick two distinct edges randomly
-        v = random.randint(0, n-1)
-        u = v
-        while u == v:
-            v = random.randint(0, n-1)
-        # add edge from v to u.
-        G.add_edge(v,u)
-        #check if G is acyclic.
-        if nx.is_directed_acyclic_graph(G):
-            e -= 1
-        else:
-            G.remove_edge(v,u)
-    # Transitively reduce.
-    T = nx.transitive_reduction(G)
-    # Color the vertices.
-    for x in nx.nodes(T):
-        T.nodes[x]['color'] = G.nodes[x]['color']
-    return T
-    
-def completeBipartitePoset(m,n, colored = False):
-    '''
-    Returns the poset whose hasse diagram is goven by the complete 
-    bipartite graph having n vertices (labelled 0,..., n-1) on the bottom 
-    level and m vertices (labelled n,...,m+n-1) on the top level. Optionally 
-    colored, all green by default and randomly otherwise
-    '''
-    # Initialize coloring.
-    if colored == True:
-        colors = [-1, 0, 1]
-    else:
-        colors = [0]
-    P = nx.DiGraph()
-    for i in range(n+m):
-        P.add_node(i, color = random.choice(colors))
-    for i in range(n):
-        for j in range(n, n+m):
-            P.add_edge(i,j)
-    return P
-
-def graphPoset(G):
-    '''
-    Returns the (colored) poset P derived from the (colored) graph G. P is 
-    defined as follows: 
-    - As a set P is the disjoint union of the Vertex set V and edge set E of G.
-    - All vertices of G are incomparable.
-    - No edge is less than any vertex.
-    - Edge e is greater than vertex v if e is adjacent to v in G.
-    '''
-    g = nx.convert_node_labels_to_integers(G)
-    n = nx.number_of_nodes(g)
-    P = nx.DiGraph()
-    for v in nx.nodes(g):
-        P.add_node(v, color = g.nodes[v].get('color',0))
-    for i, e in enumerate(nx.edges(g)):
-        P.add_node(n+i, color = g.edges[e].get('color',0))
-        P.add_edge(e[0], n+i)
-        if e[0] != e[1]:
-            P.add_edge(e[1], n+i)
-    return P
-
-# UpDown class structure
-    
 class UpDown(object):
+    ''' Abstract class for construction of an upset-downset game from a 
+    blue-green-red partially ordered set (poset). Not to be accessed directly, 
+    but through the subclass heirarchy via creation of an UpDown sublass on a 
+    specific  poset or family of posets.
     '''
-    Abstract class for constructing an upset downset game from a directed 
-    acyclic graph with vertices colored red, green or blue. 
-    (I.e., a finite poset with elements colored red, greeen or blue.)
-    '''
-    def __init__(self, P):
-        self.poset = P
-        
-    def getPoset(self):
-        return self.poset
-         
-    def upOptions(self):
+    def __init__(self, relations, coloring, covers = False):
         '''
-        Returns a dictionary of Ups options keyed by element.
+        Parameters
+        ----------
+        relations : dict
+            each key is an element in the underlying poset w/ corresponding value 
+            being a list of elements greater than the key. The 'relations' may 
+            contain some or all of the relational data of the poset with a few 
+            caveats:
+                - The dictionary must contain a key for each element in the poset.
+                  (The dict value of a maximal element should be an empty list.)
+                - Reflexivity is assumed. Do not provide the reflexive relations.
+                  (No loops in the corresponding dag.)
+                - Anti-symmetry is checked via acylicity of the corresponding dag.
+                - Transitivity is forced via reachability in the corresponding dag.
+                  (In particular, the poset returned is the transitive closure of the 
+                  provided 'relations'.)
+            We identify posets with dags as usual:
+                    nodes of dag <----> elements of poset 
+                    reachability in dag <----> relation in poset 
+                    (b reahcbale from a in dag <----> a<b in poset) 
+        coloring: dict
+            coloring map on elements in underlying poset. color keyed by element
+            where 1 (resp. 0, -1) represents blue (resp. green, red).
+        covers : bool, optional
+            set to 'True' if the given 'relations' are the (upper) covering 
+            relations on the underlying poset. (In this case, anti-symmetry will 
+            not be checked.) The default is False.
         '''
-        up_options = {}
-        upsets = {}
-        for x in nx.nodes(self.poset):
-            if self.poset.nodes[x]['color'] in {0,1}:
-                upsets[x] = upset(self.poset, x)
-        for x in upsets:
-            H = copy.deepcopy(self.poset)
-            H.remove_nodes_from(upsets[x])
-            up_options[x] = UpDown(H)
-        return up_options
-
-    def downOptions(self):
-        '''
-        Returns a dictionary of Downs options keyed by element.
-        '''
-        down_options = {}
-        downsets = {}
-        for x in nx.nodes(self.poset):
-            if self.poset.nodes[x]['color'] in {-1,0}:
-                downsets[x] = downset(self.poset, x)
-        for x in downsets:
-            H = copy.deepcopy(self.poset)
-            H.remove_nodes_from(downsets[x])
-            down_options[x] = UpDown(H)
-        return down_options
-    
-    def outcome(self):
-        '''
-        Returns the outcome. 
-        '''
-        n = nx.number_of_nodes(self.poset)
-        e = nx.number_of_edges(self.poset)    
-        N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
-        colors = {x:self.poset.nodes[x]['color'] \
-                  for x in nx.nodes(self.poset)}
-        # Base cases for recursion
-        colors_sum = sum(colors.values()) 
-        if e == 0:
-            if colors_sum == 0:
-                if n%2 == 0:
-                    out = P
-                else:
-                    out = N
-            elif colors_sum > 0:
-                out = L
-            else:
-                out = R
-        # Recursively determine the ouctome.
+        if not covers:
+            assert dag.is_acyclic(relations), 'The given relations are not anti-symmetric.'
+            self._cover_relations = dag.transitive_reduction(relations)
         else:
-            up_ops_otcms = {G.outcome() for G in self.upOptions().values()}
-            dwn_ops_otcms = {G.outcome() for G in self.downOptions().values()}
-            # first player to move wins
-            if (P in up_ops_otcms or L in up_ops_otcms) and \
-                (P in dwn_ops_otcms or R in dwn_ops_otcms):
-                out = N
-            # up wins no matterwho moves first
-            elif (P in up_ops_otcms or L in up_ops_otcms) and \
-                (P not in dwn_ops_otcms and R not in dwn_ops_otcms):
-                out = L
-            # down wins no matter who moves first
-            elif (P in dwn_ops_otcms or R in dwn_ops_otcms) and \
-                (P not in up_ops_otcms and L not in up_ops_otcms):
-                out = R
-            # second player to move wins
-            elif (P not in up_ops_otcms and L not in up_ops_otcms) and \
-                (P not in dwn_ops_otcms and R not in dwn_ops_otcms):
-                out = P
-        return out
-    
-    def __neg__(self):
-        '''
-        Returns the negative of the game.
-        '''        
-        return UpDown(coloredDual(self.poset))
-
-    def __add__(self, other):
-        '''
-        Retruns the sum of the two games.
-        '''
-        return UpDown(disjointUnion(self.poset, other.poset))
-    
-    def __sub__(self, other):
-        '''
-        Retruns the difference of the two games.
-        '''
-        return self + (- other)
-    
-    def __eq__(self, other):
-        '''
-        Returns True if the two games are equal and False otherwise.
-        '''
-        return (self - other).outcome() == 'Previous'
-    
-    def __or__(self, other):
-        '''
-        Returns True if the two games are fuzzy (incomparable) and False 
-        otherwise.
-        '''
-        return (self - other).outcome == 'Next'
-
-    def __gt__(self, other):
-        '''
-        Returns True if the first game is greater than (better for Up) the 
-        second game and False otherwise.
-        '''
-        return (self - other).outcome() == 'Up'
-    
-    def __lt__(self, other):
-        '''
-        Returns True if the first game is less than (better for down) the 
-        second game and False otherwise.
-        '''
-        return (self - other).outcome() == 'Down'
-            
-    def gameboard(self):
-        '''
-        Plots the gameboard. Returns position of the vertices.
-        '''
-        return hasse(self.poset)
-    
-    def get_height(self):
-        '''
-        Returns the number of levels -1
-
-        '''
-        x = 0
-        for i in self.poset.nodes():
-            if x < height(self.poset, i):
-                x = height(self.poset, i)
-        return x
+            self._cover_relations = relations
+        self._elements = list(self._cover_relations)
+        self._coloring_map = coloring
         
-    def play(self, marker='o'):
+##############################################################################
+######################### POSET ##############################################
+##############################################################################
+        
+    def cover_relations(self):
+        ''' Returns the (upper) cover relations of the underlying poset.
+
+        Returns
+        -------
+        dict
+            list of (upper) covers keyed by element.
+            
         '''
-        Plays a game of UpDown. Sets the position to be the starting position
-        of the gameboard.
+        return self._cover_relations
+        
+    def elements(self):
+        ''' Returns all elements of the underlying poset.
+    
+        Returns
+        -------
+        list
+            all elements of the underlying poset
+
         '''
+        return self._elements
+    
+    def __len__(self):
+        ''' Returns the cardinality of the underlying poset. 
+
+        Returns
+        -------
+        int
+            number of elements in the underlying poset.
+
+        '''
+        return len(self._elements)
+    
+    def levels(self):
+        ''' Returns the level of each element in the Hasse diagram of the 
+        underlying poset.
+
+        Returns
+        -------
+        dict
+            keyed by elements of the underlying poset, with corresponding value 
+            being the length of a longest path in the Hasse diagram which 
+            terminates in the key.
+
+        '''
+        return dag.longest_path_lengths(self._cover_relations, direction = 'incoming')
+        
+    def height(self):
+        ''' Returns the height of the underlying poset.
+        
+        Returns
+        -------
+        int
+            the maximum level in the underlying poset. ** See levels().
+
+        '''
+        return max(self.levels().values())
+    
+    def maximal_elements(self):
+        ''' Returns all maximal elements of the underlying poset.
+        
+        Returns
+        -------
+       list
+          all maximal elements of the underlying poset.
+
+        '''
+        max_elements = []
+        for x in self._elements:
+            if self._cover_relations[x] == []:
+                max_elements.append(x)
+        return max_elements
+    
+    def minimal_elements(self):
+        ''' Returns all minimal elements of the underlying poset.
+        
+        Returns
+        -------
+        list
+            all minimal elements of the underlying poset.
+
+        '''
+        reverse_covers = dag.reverse(self._cover_relations)
+        min_elements = []
+        for x in self._elements:
+            if reverse_covers[x] == []:
+                min_elements.append(x)
+        return min_elements
+   
+    def covers(self, x):
+        ''' Returns all (upper) covers of element 'x'.
+
+        Parameters
+        ----------
+        x : element of the underlying poset.
+
+        Returns
+        -------
+        list
+            all upper covers of 'x'.
+
+        '''
+        return self._cover_relations[x]
+    
+      
+    def upset(self, x):
+        ''' Returns the upset of 'x'.
+        
+        Parameters
+        ----------
+        x : element of the underlying poset.
+
+        Returns
+        -------
+        list
+            all elements of the underlying poset which are greater than or 
+            equal to 'x'.
+
+        '''
+        upset_x = dag.descendants(self._cover_relations, x)
+        upset_x.append(x)
+        return upset_x
+    
+    def downset(self, x):
+        ''' Returns the downset of 'x'.
+            
+        Parameters
+        ----------
+        x : element of the underlying poset.
+
+        Returns
+        -------
+        list
+            all elements of the underlying poset which are less than or equal
+            to 'x'.
+
+        '''
+        downset_x = dag.ancestors(self._cover_relations, x)
+        downset_x.append(x)
+        return downset_x
+        
+##############################################################################
+######################### COLORING ###########################################
+##############################################################################
+        
+    def coloring_map(self):
+        ''' Returns the coloring map on the game.
+
+        Returns
+        -------
+        dict
+            color keyed by element of the underlying poset where 1 (resp. 0,-1)
+            represents blue (resp. green, red).
+
+        '''
+        return self._coloring_map
+    
+    def color_sum(self):
+        ''' Returns the sum over all colors in the game.
+        Returns
+        -------
+        int 
+            the sum over all colors in the game where 1 (resp. 0,-1) represents 
+            blue (resp. green, red).
+
+        '''
+        return sum(self._coloring_map.values())
+    
+    def color(self, x):
+        ''' Returns the color of 'x'.
+        
+        Parameters
+        ----------
+        x : element of underlying poset
+
+        Returns
+        -------
+        int
+            the color of 'x', where 1 (resp. 0,-1) represents blue 
+            (resp. green, red).
+
+        '''
+        
+        return self._coloring_map[x]
+    
+##############################################################################
+######################### SUBPOSITIONS/OPTIONS ETC ###########################
+##############################################################################
+   
+    def subpositions(self, other_arguments):
+       ''' TO BE WRITTEN... H is a subposition of G if there is a sequence of 
+       moves (not necessarily alternating) leading from G to H. I.e., subpositions
+       are subposets...
+       
+       Returns
+       -------
+       None.
+
+       '''
+       return None
+          
+    def up_options(self): # CHANGE TO RETURN A GENRATOR?
+        ''' Returns Ups options in the game.
+        
+        Returns
+        -------
+        dict
+            Ups options in the game keyed by the element whose upset has been
+            removed.
+            
+        '''
+        options = {}
+        for x in self._elements:
+            if self.color(x) in {0,1}:
+                option_elements = list(set(self._elements) - set(self.upset(x)))
+                option_coloring = {y: self.color(y)  for y in option_elements}
+                option_covers = dag.subgraph(self._cover_relations, option_elements) 
+                options[x] = UpDown(option_covers, option_coloring, covers = True)
+        return options
+
+    def down_options(self): # CHANGE TO RETURN A GENRATOR?
+        ''' Returns Downs options in the game.
+        
+        Returns
+        -------
+        dict
+            Downs options in the game keyed by the element whose downset has 
+            been removed.
+            
+        '''
+        options = {}
+        for x in self._elements:
+            if self.color(x) in {-1,0}:
+                option_elements = list(set(self._elements) - set(self.downset(x)))
+                option_coloring = {y: self.color(y) for y in option_elements}
+                option_covers = dag.subgraph(self._cover_relations, option_elements) 
+                options[x] = UpDown(option_covers, option_coloring, covers = True)
+        return options
+                
+##############################################################################    
+############################### PLOTTING ######################################
+##############################################################################
+    
+    def gameboard(self, marker = 'o'):
+        ''' Plots the game. I.e. the (colored) Hasse diagram of the underlying 
+        poset.
+        
+        Parameters
+        ----------
+        marker : Type, optional
+            DESCRIPTION. The default is 'o'.
+
+        Returns
+        -------
+        None
+
+        '''
+        # HARRY PLOTTER.... HASSE METHOD FROM POSET CLASS...?
+        return None
+    
+##############################################################################    
+########################### GAMEPLAY #########################################
+##############################################################################
+     
+    def play(self, marker='o'):  #NEED TO UPDATE AND ADD COMMENTS
+        ''' Interactively play the game.
+        
+        Parameters
+        ----------
+        marker : TYPE, optional
+            DESCRIPTION. The default is 'o'.
+
+        Returns
+        -------
+        None.
+        '''
+        
         plt.clf()
         plt.ioff()
         players = ['Up', 'Down']
@@ -424,7 +408,7 @@ class UpDown(object):
                     hp.figure_subgraph(sub_game, fig_info)
                     self = sub_game
                     plt.pause(0.01)
-            i += 1
+            i += 1   
             
         if i % 2 == 0:
             print(second + " wins!")
@@ -433,107 +417,291 @@ class UpDown(object):
             print(first + " wins!")
             fig_info[0].suptitle(first + " wins!")
         plt.pause(0.01)
-# Subclasses of UpDown      
-class RandomUpDown(UpDown):
-    '''
-    Constructor for a randomly generated game of UpDown.
-    '''
-    def __init__(self, n, colored = False):
-        '''
-        Initializes a randomly generated game of Upset Downset on n verticies. 
-        Optionally colored, all green by default.
-        '''
-        P = randomPoset(n, colored = colored)
-        UpDown.__init__(self, P)
         
-class CompleteBipartiteUpDown(UpDown):
-    '''
-    Constructor for a game of Upset Downset played on a poset whose hasse 
-    diagram is a (horizontally oriented) complete bipartite graph.
-    '''
-    def __init__(self, m, n, colored = False):
-        '''
-        Initializes a complete bipartite game of Upset Downset on m+n 
-        verticies. Optionally colored, all green by default and randomly 
-        otherwise.
-        '''
-        P = completeBipartitePoset(m, n, colored = colored)
-        UpDown.__init__(self, P)
+##############################################################################    
+########### UPDOWNS PARTIALLY ORDERED ABELIAN GROUP STRUCTURE ################
+##############################################################################
+    
+    def outcome(self):
+        ''' Returns the outcome of the game. **Due to the huge number of 
+        suboptions, for all but the smallest games this algotithm is extremely 
+        slow.
         
-class GraphUpDown(UpDown):
-    '''
-    Abstract class for constructing an Upset Downset game played on a colored
-    (blue, green, red) graph G. Here the poset P in which the game is played 
-    on is derived from G as follows: 
-        - As a set P is the disjoint union of the Vertex set V and edge set E 
-        of G.
-        - All vertices of G are incomparable.
-        - No edge is less than any vertex.
-        - The edge e is gretaer than a vertex v if e is adjacent to v in G.
-    
-    **The Graph Upset Downset game is played on G, not on the hasse diagram of 
-    P.
-    
-    '''
-    def __init__(self, G, colored = False):
+        Returns
+        -------
+        str
+            'Next', Next player (first playr to move) wins.
+            'Previous', Previous player (second player to move) wins.
+            'Up', Up can force a win. (Playing first or second). 
+            'Down', Down corce a win. (Playing first or second). 
+
         '''
-        Initializes a game of Graph Upset Downset on the graph G. Optionally 
-        colored, all green by default.
+        n = len(self)
+        e = dag.number_of_edges(self._cover_relations)
+        N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
+        # Base cases for recursion
+        colors_sum = self.color_sum()
+        if e == 0:
+            if colors_sum == 0:
+                if n%2 == 0:
+                    out = P
+                else:
+                    out = N
+            elif colors_sum > 0:
+                out = L
+            else:
+                out = R
+        # Recursively determine the ouctome from the games options...
+        else:     
+            # Set of the outcomes of Ups options
+            up_ops_otcms = set()
+            # Set of the outcomes of Downs options
+            dwn_ops_otcms = set()
+            # Recursively determine the outcome of each of Ups options.
+            ups_ops = self.up_options()
+            for x in ups_ops:
+                option = ups_ops[x]
+                up_ops_otcms.add(option.outcome())
+                # if option is a second player win or a win for Up we can 
+                # stop looking
+                if {P,L} & up_ops_otcms:
+                    break
+            # Same for Downs options
+            dwn_ops = self.down_options()
+            for x in dwn_ops:
+                option = dwn_ops[x]
+                dwn_ops_otcms.add(option.outcome())
+                if {P,R} & dwn_ops_otcms:
+                    break
+            # Determine outcome via the outcomes of the options:
+            # First player to move wins. 
+            if {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms:
+                out = N
+            # Second player to move wins
+            elif not {P, L} & up_ops_otcms and not {P,R} & dwn_ops_otcms:
+                out = P
+            # Up wins no matter who moves first
+            elif {P, L} & up_ops_otcms and not {P,R} & dwn_ops_otcms:
+                out = L
+            # Down wins no matter who moves first:
+            # not {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms
+            else:
+                out = R
+        return out
+    
+    def __neg__(self):
+        '''Returns the negative of the game.
+    
+        Returns
+        -------
+        UpDown
+            the upset-downset game on the dual poset and opposite coloring.
+
         '''
-        self.graph = G
-        P = graphPoset(self.graph)
-        UpDown.__init__(self, P)
-    
-    def getGraph(self):
-        return self.graph
-    
-    def drawGraph(self):  #UPDATE TO DRAW LOOPS
-        v_colors = {}
-        e_colors = {}
-        for v in nx.nodes(self.graph):
-            if self.graph.nodes[v]['color'] == 0:
-                c = 'g'
-            elif self.graph.nodes[v]['color'] == 1:
-                c = 'b'
-            else:
-                c = 'r'
-            v_colors[v] = c
-        for e in nx.edges(self.graph):
-            if self.graph.edges[e]['color'] == 0:
-                c = 'g'
-            elif self.graph.edges[e]['color'] == 1:
-                c = 'b'
-            else:
-                c = 'r'
-            e_colors[e] = c
-        return nx.draw(self.graph, with_labels = True, \
-                       node_color = v_colors.values(), \
-                           edge_color = e_colors.values())
+        dual_covers = dag.reverse(self._cover_relations)
+        reverse_coloring = {x: -self._coloring_map[x] for x in self._elements}
+        return UpDown(dual_covers, reverse_coloring, covers = True)
+
+    def __add__(self, other):
+        '''Returns the (disjunctive) sum of games. **Relabels elements to consecutive 
+        nonnegative integers starting from 0.
+        
+        Parameters
+        ----------
+        other : UpDown
+
+        Returns
+        -------
+        UpDown
+            The upset-downset game on the disjoint union of posets with 
+            unchanged colorings.
             
-    def gameboard(self):
+        Note: the sum retains all elements (relabelled), relations and coloring 
+            from both 'self' and 'other' with the added relations that all 
+            elements of 'self' and 'other' are incomparable.
+
         '''
-        Plots the gameboard.
+        sum_covers = {}
+        sum_coloring = {}
+        # Relabelling for self.
+        self_relabel = {}
+        self_new_label = 0
+        for x in self._elements:
+            self_relabel[x] = self_new_label
+            self_new_label += 1
+        # Relabelling for other.
+        other_relabel = {}
+        other_new_label = self_new_label
+        for x in other.elements():
+            other_relabel[x] = other_new_label
+            other_new_label += 1
+        # Construct the cover relations for disjoint union
+        for x in self._elements:
+            sum_covers[self_relabel[x]] = []
+            sum_coloring[self_relabel[x]] = self._coloring_map[x]
+            for y in self._cover_relations[x]:
+                sum_covers[self_relabel[x]].append(self_relabel[y])
+        for x in other.elements():
+            sum_covers[other_relabel[x]] = []
+            sum_coloring[other_relabel[x]] = other.color(x)
+            for y in other.covers(x):
+                sum_covers[other_relabel[x]].append(other_relabel[y]) 
+        return UpDown(sum_covers, sum_coloring, covers = True)
+    
+    def __sub__(self, other):
+        ''' Returns the difference of games.
+    
+        Parameters
+        ----------
+        other : UpDown
+
+        Returns
+        -------
+        UpDown
+            the upset-downset game on the disjoint union of the poset underliying
+            'self' with unchanged coloring and the dual of the poset underlying 
+            'other' with the opposite coloring.
+
         '''
-        self.drawGraph()
+        return self + (- other)
+    
+    def __eq__(self, other):
+        ''' Returns wether the games are equal. ** Depends on the outcome method.
+
+        Parameters
+        ----------
+        other : UpDown
+
+        Returns
+        -------
+        bool
+            True if the games 'self' and 'other' are equal (their differecne is 
+            a second player win) and False otherwise.
+
+        '''
+        return (self - other).outcome() == 'Previous'
+    
+    def __or__(self, other):
+        ''' Returns wether games are incomparable (fuzzy). ** Depends on the 
+        outcome method.
+
+        Parameters
         
-class RandomGraphUpDown(GraphUpDown):
-    '''
-    Constructor for a randomly generated game of Graph Upset Downset.
-    '''
-    def __init__(self, m, n, colored = False):
+        ----------
+        other : UpDown object
+
+        Returns
+        -------
+        bool
+            True if the games 'self' and 'other' are fuzzy (their difference is 
+            a first player win) and False otherwise.
         '''
-        Initializes a randomly generated game of Graph Upset Downset on a 
-        graph with m vertices and n edges. Optionally colored, all green by 
-        default and randomly otherwise.
+        return (self - other).outcome == 'Next'
+
+    def __gt__(self, other):
+        ''' Returns wether games are comparable in specified order. ** Depends 
+        on the outcome method.
+
+        Parameters
+        ----------
+        other : UpDown object
+
+        Returns
+        -------
+        bool
+            True if 'self' is greater than 'other' (better for Up: their 
+            differnce is a win for Up)  and False otherwise.
+
         '''
-        G = nx.gnm_random_graph(m,n)
-        # Initialize coloring.
-        if colored == True:
-            colors = [-1, 0, 1]
-        else:
-            colors = [0]
-        for v in nx.nodes(G):
-            G.nodes[v]['color'] = random.choice(colors)
-        for e in nx.edges(G):
-            G.edges[e]['color'] = random.choice(colors)
-        GraphUpDown.__init__(self, G)
+        return (self - other).outcome() == 'Up'
+    
+    def __lt__(self, other):
+        ''' Returns wether games are comparable in specified order. ** Depends 
+        on the outcome method.
+
+        Parameters
+        ----------
+        other : UpDown object
+
+        Returns
+        -------
+        bool
+            True if 'self' is less than 'other' (better for Down: their 
+            differnce is a win for Down)  and False otherwise.
+
+        '''
+        return (self - other).outcome() == 'Down'
+
+###############################################################################
+######################### NEW GAMES FROM OLD ##################################
+##############################################################################
+    
+    @staticmethod
+    def ordinal_sum(G, H):
+        ''' Returns the ordinal sum of games 'G' and 'H'. (This is not a 
+        commutative operation). **Relabels all elemnts with consecutive 
+        nonnegative integers starting from 0.
+        
+        Parameters
+        ----------
+        G: UpDown
+        
+        H: UpDOwn
+
+        Returns
+        -------
+        UpDown
+            The ordianl sum retains all elements (relabelled), relations and
+            coloring from both 'G' and 'H' with the added relations that every
+            element of 'self' is greater than every element of 'other'
+
+        '''
+        ordinal_covers = {}
+        ordinal_coloring = {}
+        # Relabelling for other.
+        H_relabel = {}
+        H_new_label = 0
+        for x in H.elements():
+            H_relabel[x] = H_new_label
+            H_new_label += 1
+        # Relabelling for self.
+        G_relabel = {}
+        G_new_label = H_new_label
+        for x in G.elements():
+            G_relabel[x] = G_new_label
+            G_new_label += 1
+        # Construct the cover relations for ordianl sum. 
+        H_maximal = H.maximal_elements()
+        G_minimal  = G.minimal_elements()
+        for x in G.elements():
+            ordinal_covers[G_relabel[x]] = []
+            ordinal_coloring[G_relabel[x]] = G.color(x)
+            for y in G.covers(x):
+                ordinal_covers[G_relabel[x]].append(G_relabel[y])
+        for x in H.elements():
+            ordinal_covers[H_relabel[x]] = []
+            ordinal_coloring[H_relabel[x]] = H.color(x)
+            for y in H.covers(x):
+                ordinal_covers[H_relabel[x]].append(H_relabel[y]) 
+            if x in H_maximal:
+                for z in G_minimal:
+                    ordinal_covers[H_relabel[x]].append(G_relabel[z])
+        return UpDown(ordinal_covers, ordinal_coloring, covers = True)
+    
+    @staticmethod
+    def fuse(G, H, x, y):
+        '''  TO BE WRITTEN.
+        
+        Parameters
+        ----------
+        other : Poset
+        x : element of poset underlying 'G'.
+        y : element of poset underlying 'H'.
+
+        Returns
+        -------
+        Poset
+
+        '''
+        return None
+    
