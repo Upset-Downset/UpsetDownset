@@ -1,71 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Algorithms for diredted (acyclic) graphs provided as utility for Poset class.
+Algorithms for diredted (acyclic) graphs provided as utility for the UpDown 
+class.
 
-We identify posets with dags as usual:
+We identify dags with posets as usual:
          nodes of dag <----> elements of poset 
          reachability in dag <----> relation in poset 
          (b reahcbale from a in dag <----> a<b in poset)
     
 (As noted in their docstrings, a number of the algorithms require acyclicity.
-As this condition is checked via the isAcyclic() function upon instantiation of 
-a Poset object we don't check for it here.)
+As this condition is checked via the is_acyclic() function upon instantiation of 
+an UpDOwn object we don't check for it here.)
 
 @author: Charlie 
 """
-import random
-
-def integerRelabel(G):
-    ''' Relabels nodes for directed graph 'G' by consecutive nonnegative
-    integers staring from 0. (Not in place.)
-
-    Parameters
-    ----------
-    G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
-        by node.)
-
-    Returns
-    -------
-    dict (of dicts)
-        the relabellung has two keys: 'relabelled' which is an adjacecny representation 
-        the directed graph 'G' (adjacecny lists keyed by node) with nodes relabelled 
-        by consecutive nonnegative integers staring from 0 and 'relabel map' 
-        which is the relabelling map, old labels keyed by new labels. 
-
-    '''
-    relabelling = {'relabelled': None, 'relabel map': None}
-    n = len(G)
-    ints = set(i for i in range(n))
-    nodes = set(G)
-    # if already labelled by consecutive integers staring from 0.
-    if  ints == nodes:
-        old_new = {i:i for i in range(n)}
-        relabelling['relabelled'], relabelling['relabel map'] = G, old_new
-        return relabelling
-    # Otherwise we need to actually relabel.
-    new_old = {}
-    old_new = {}
-    G_new = {i:[] for i in range(n)}
-    int_label = 0
-    for v in G:
-        new_old[int_label] = v
-        old_new[v] =int_label
-        int_label +=1
-    for i in range(n):
-        v = new_old[i]
-        for u in G[v]:
-            j = old_new[u]
-            G_new[i].append(j)
-    relabelling['relabelled'] = G_new
-    relabelling['relabel map'] = new_old    
-    return relabelling
         
-        
-    
-        
-
 def subgraph(G, nodes):
     ''' Returns the subgraph of the directed graph 'G' on 'nodes'.
     Parameters
@@ -112,33 +62,7 @@ def reverse(G):
             reverse[u].append(v)
     return reverse
 
-def nodeColoring(G, colored = None):
-    ''' Returns an all green or random blue-green-red coloring on the vertices 
-    of the directed graph 'G'.
-    
-    Parameters
-    ----------
-    G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
-        by node.)
-    coloring : string, optional
-        If 'random', a random coloring will be provided. the default is an all 
-        green coloring
-        
-    Returns
-    -------
-    dict
-        colors (1 (resp. 0,-1) represent blue (resp. green, red)) keyed by node.
-
-    '''
-    colors = [-1,0,1]
-    if colored == 'random':
-        coloring = {v:random.choice(colors) for v in G}
-    else:
-        coloring = {v:0 for v in G}
-    return coloring
-
-def numberOfEdges(G):
+def number_of_edges(G):
     ''' Return the number of edges in the directed graph 'G'.
 
     Parameters
@@ -153,10 +77,9 @@ def numberOfEdges(G):
         the number of edges in 'G'.
 
     '''
-    number_of_edges = sum(len(G[v]) for v in G)
-    return number_of_edges
+    return sum(len(G[v]) for v in G)
 
-def inDegree(G, v):
+def in_degree(G, v):
     ''' Returns the numbner of incoming edges of the node 'v' in the directed 
     graph 'G'.
     
@@ -175,7 +98,7 @@ def inDegree(G, v):
     '''
     return len(G[v])
 
-def outDegree(G, v):
+def out_degree(G, v):
     ''' Returns the numbner of outgoing edges of the node 'v' in the directed 
     graph 'G'.
     
@@ -216,12 +139,12 @@ def descendants(G, source):
         MIT Press, 2009.    
     '''
     ############# RECURSIVE HELPER ###########################################
-    def dfsVisit(G,v):
+    def dfs_visit(G,v):
         visited[v] = 0
         reachable_from_source.append(v)
         for u in G[v]:
             if visited[u] == -1:
-                dfsVisit(G,u)
+                dfs_visit(G,u)
     #############################################c#############################
     reachable_from_source = []
     # Keep track of nodes already visited by marking with 0 if already visited
@@ -229,7 +152,7 @@ def descendants(G, source):
     visited = {v:-1 for v in G}
     for v in G[source]:
         if visited[v] == -1:
-            dfsVisit(G,v)
+            dfs_visit(G,v)
     return reachable_from_source
    
 def ancestors(G, source):
@@ -252,7 +175,7 @@ def ancestors(G, source):
     has_path_to_source = descendants(rev, source)
     return has_path_to_source
 
-def isAcyclic(G):
+def is_acyclic(G):
     ''' Returns true if the directed graph G is acyclic and false otherwise.
     Parameters
     ----------
@@ -272,7 +195,7 @@ def isAcyclic(G):
 
     '''
    ############# RECURSIVE HELPER ###########################################
-    def dfsVisit(G,v):
+    def dfs_visit(G,v):
         discovery[v] = 0
         for u in G[v]:
             # If we encounter a node again before we've finished exploring it's 
@@ -280,7 +203,7 @@ def isAcyclic(G):
             if discovery[u] == 0:
                 return False
             if discovery[u] == -1:
-                if not dfsVisit(G,u):
+                if not dfs_visit(G,u):
                     return False
         # Done sxploring v.
         discovery[v] = 1
@@ -290,13 +213,13 @@ def isAcyclic(G):
     # 1 when we've finished exploring its adjacency list.
     discovery = {v:-1 for v in G}
     # Loop over all undiscovered nodes and check for cycles.
-    for v in G.keys():
+    for v in G:
         if discovery[v] == -1:
-            if not dfsVisit(G,v):
+            if not dfs_visit(G,v):
                 return False
     return True
 
-def topologicalSort(G, reverse = False):
+def topological_sort(G, reverse = False):
     ''' Returns a topological ordering of the nodes in the directed acyclic**
     graph G.
 
@@ -323,11 +246,11 @@ def topologicalSort(G, reverse = False):
 
     '''
     ############# RECURSIVE HELPER ###########################################
-    def dfsVisit(G,v):
+    def dfs_visit(G,v):
         discovery[v] = 0
         for u in G[v]:
             if discovery[u] == -1:
-                dfsVisit(G,u)  
+                dfs_visit(G,u)  
         # Done with v, add it to ordering.
         discovery[v] = 1
         linear_order.append(v)
@@ -336,17 +259,16 @@ def topologicalSort(G, reverse = False):
     # Mark each vertex before discovery with -1, with 0 once discovered and 
     # 1 when we've finished exploring its adjacency list.
     discovery = {v:-1 for v in G}
-    # Loop over all undiscovered nodes and place them in linear order once 
-    # they're finished.
-    for v in G.keys():
+    # Loop over all undiscovered nodes placing in order as we go.
+    for v in G:
         if discovery[v] == -1:
-            dfsVisit(G,v)
+            dfs_visit(G,v)
     # Since we were appending finished nodes to the list we need to reverse.
     if not reverse:
         linear_order.reverse()
     return linear_order
 
-def transitiveClosure(G):
+def transitive_closure(G):
     ''' Returns the transitive closure of the directed graph 'G'.
     
     Parameters
@@ -365,14 +287,14 @@ def transitiveClosure(G):
         https://en.wikipedia.org/wiki/Transitive_closure
          
     '''
-    transitive_closure = {}
+    tc = {}
     # Loop over all nodes of G, adding all descendants to adjacency list in 
     # transitive closure. 
-    for v in G.keys():
-        transitive_closure[v] = descendants(G,v)
-    return transitive_closure
+    for v in G:
+        tc[v] = descendants(G,v)
+    return tc
 
-def transitiveReduction(G):
+def transitive_reduction(G):
     ''' Returns the transitive reduction of the directed acyclic** graph 'G'.
     Parameters.
     ----------
@@ -392,9 +314,9 @@ def transitiveReduction(G):
         - https://en.wikipedia.org/wiki/Transitive_reduction
         - https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/dag.html
     '''                 
-    transitive_reduction = {}
-    # Store descendants of each node as they are needed so we don't compute 
-    # more times than necessary.
+    tr = {}
+    # Store descendants of each node in G in a dict as they are needed so we 
+    # don't compute more times than necessary.
     G_descendants = {}
     # loop over nodes in G to compute adjacency list in transitive reduction
     for v in G:
@@ -406,28 +328,35 @@ def transitiveReduction(G):
             # If u has already been removed from v's adjaceny list in 
             # transitive reduction, then so have u's descendants in G.
             if u in tr_adj_v:
-                # if necessary, compute u's descendants in G.
+                # If necessary, compute u's descendants in G.
                 if u not in G_descendants:
                     G_descendants[u] = set(descendants(G,u))
                 # Remove u's descendants in G from v's adjacency list in 
                 # transitive reduction
                 tr_adj_v -= G_descendants[u]
         # update v's adjaceny list in transitive reduction
-        transitive_reduction[v] = list(tr_adj_v)
-    return transitive_reduction
+        tr[v] = list(tr_adj_v)
+    return tr
 
-def longestPathLength(G):
-    ''' Returns the length of the longest path in the directed acyclic** graph 'G'.
+def longest_path_lengths(G, direction = 'outgoing'):
+    ''' Returns the length of the longest path 'outgoing' (optionally, incoming) 
+    each node in the directed acyclic** graph 'G' 
+    
     Parameters
     ----------
     G : dict
-        adjacecny representation of an acyclic directed graph. (Adjacecny lists 
+        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
         keyed by node.)
+    direction : str, optional
+         If 'outgoing', the length of the longest path starting at each node will
+         length will be omputed. If 'incoming', the length of the longest path 
+         ending at each node will length will be computed.
 
     Returns
     ------- 
-    int
-        length of the longest path in 'G'.
+    dict
+        lengths of the longest outgoing (or incoming) paths in 'G' 'keyed by 
+        node .
         
     ** It is assumed that 'G' is acyclic, we do not check.
     
@@ -435,18 +364,40 @@ def longestPathLength(G):
         - https://en.wikipedia.org/wiki/Longest_path_problem#Acyclic_graphs_and_critical_paths
 
     '''
-    # Store maximum path length out of each node
-    max_out_lengths = {v:0 for v in G}
-    reverse_linear_order = topologicalSort(G, reverse = True)
+    # Store maximum path length computed for each node
+    max_path_lengths = {v:0 for v in G}
+    # If we want incoming paths, then reverse the graph.
+    if direction == 'incoming':
+        G = reverse(G)
+    reverse_linear_order = topological_sort(G, reverse = True)
     # Loop over nodes in reverse topological order, updating maximum length of 
-    # outgoing path as we go.
+    # each path as we go.
     for v in reverse_linear_order:
-        max_out_v = 0
+        MAX = 0
         for u in G[v]:
-            if max_out_lengths[u] + 1 > max_out_v:
-               max_out_v = max_out_lengths[u] + 1
-        max_out_lengths[v] = max_out_v
-    longest_path_length = max(max_out_lengths.values())  
-    return longest_path_length
+            if max_path_lengths[u] + 1 > MAX:
+               MAX = max_path_lengths[u] + 1
+        max_path_lengths[v] = MAX  
+    return max_path_lengths
+
+def connected_components(G):
+    ''' TO BE WRITTEN... Returns the nodes in each component of the undirected 
+    graph underlying the directed graph 'G"."
+    
+
+
+    Parameters
+    ----------
+    G : dict
+        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
+        keyed by node.)
+
+    Returns
+    -------
+    list
+        lists of nodes in each connected compnent of the undirected graph 
+        underlying 'G'.
+    '''
+    return None
 
     
