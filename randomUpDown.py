@@ -43,7 +43,7 @@ def random_poset_relations(n):
         else:
             random_relations[i].pop()
         # Reduce to cover relations.
-        random_covers = dag.transitive_reduction(random_relations)
+    random_covers = dag.transitive_reduction(random_relations)
     return random_covers
 
 class RandomGame(UpDown):

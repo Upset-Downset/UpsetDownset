@@ -258,7 +258,7 @@ class UpDown(object):
        '''
        return None
           
-    def up_options(self): # CHANGE TO RETURN A GENRATOR?
+    def up_options(self): 
         ''' Returns Ups options in the game.
         
         Returns
@@ -277,7 +277,7 @@ class UpDown(object):
                 options[x] = UpDown(option_covers, option_coloring, covers = True)
         return options
 
-    def down_options(self): # CHANGE TO RETURN A GENRATOR?
+    def down_options(self): 
         ''' Returns Downs options in the game.
         
         Returns
@@ -295,6 +295,16 @@ class UpDown(object):
                 option_covers = dag.subgraph(self._cover_relations, option_elements) 
                 options[x] = UpDown(option_covers, option_coloring, covers = True)
         return options
+    
+    def summands(self):
+        ''' TO BE WRITTEN... 
+
+        Returns
+        -------
+        None.
+
+        '''
+        return None
                 
 ##############################################################################    
 ############################### PLOTTING ######################################
@@ -462,29 +472,29 @@ class UpDown(object):
             for x in ups_ops:
                 option = ups_ops[x]
                 up_ops_otcms.add(option.outcome())
-                # if option is a second player win or a win for Up we can 
-                # stop looking
-                if {P,L} & up_ops_otcms:
+                # If both a second player win and a win for Up appear as options 
+                # outcomes we can stop looking.
+                if {P,L} in up_ops_otcms:
                     break
             # Same for Downs options
             dwn_ops = self.down_options()
             for x in dwn_ops:
                 option = dwn_ops[x]
                 dwn_ops_otcms.add(option.outcome())
-                if {P,R} & dwn_ops_otcms:
+                if {P,R} in dwn_ops_otcms:
                     break
             # Determine outcome via the outcomes of the options:
             # First player to move wins. 
             if {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms:
                 out = N
             # Second player to move wins
-            elif not {P, L} & up_ops_otcms and not {P,R} & dwn_ops_otcms:
+            elif {P, L} not in up_ops_otcms and {P,R} not in dwn_ops_otcms:
                 out = P
             # Up wins no matter who moves first
-            elif {P, L} & up_ops_otcms and not {P,R} & dwn_ops_otcms:
+            elif {P, L} & up_ops_otcms and {P,R} not in dwn_ops_otcms:
                 out = L
             # Down wins no matter who moves first:
-            # not {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms
+            # {P, L} not in up_ops_otcms and {P,R} & dwn_ops_otcms
             else:
                 out = R
         return out
