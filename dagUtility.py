@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Algorithms for diredted (acyclic) graphs provided as utility for the UpDown 
+Algorithms for directed (acyclic) graphs provided as utility for the UpDown 
 class.
 
     
@@ -396,4 +396,31 @@ def connected_components(G):
     '''
     return None
 
+def edge_list(G):
+    '''
+    
+
+    Parameters
+    ----------
+    G : dict
+        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
+        keyed by node.)
+
+    Returns
+    -------
+    list
+        lists of two element lists denoting the edges of G.
+
+    '''
+    #a list to store the edges
+    edges = []
+    #nodes of the graph
+    nodes = G.keys()
+    #iterate over the nodes, then iterate over the the covers of that node.
+    #collect all the pairs.
+    for i in nodes:
+        for j in G[i]:
+            edges.append((i,j))
+    
+    return edges
     
