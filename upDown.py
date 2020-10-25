@@ -12,9 +12,7 @@ import matplotlib.pyplot as plt
 
 class UpDown(object):
     ''' Abstract class for construction of an upset-downset game from a 
-    blue-green-red partially ordered set (poset). Not to be accessed directly, 
-    but through the subclass heirarchy via creation of an UpDown sublass on a 
-    specific  poset or family of posets.
+    blue-green-red partially ordered set (poset). 
     '''
     def __init__(self, relations, coloring, covers = False):
         '''
@@ -331,7 +329,6 @@ class UpDown(object):
 ##############################################################################    
 ########################### GAMEPLAY #########################################
 ##############################################################################
-     
     def play(self, marker='o'):
         ''' Interactively play the game.
         
@@ -535,63 +532,91 @@ class UpDown(object):
         Returns
         -------
         str
-            'Next', Next player (first playr to move) wins.
+            'Next', Next player (first player to move) wins.
             'Previous', Previous player (second player to move) wins.
             'Up', Up can force a win. (Playing first or second). 
-            'Down', Down corce a win. (Playing first or second). 
+            'Down', Down can force a win. (Playing first or second). 
 
         '''
-        n = len(self)
-        e = dag.number_of_edges(self._cover_relations)
-        N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
-        # Base cases for recursion
-        colors_sum = self.color_sum()
-        if e == 0:
-            if colors_sum == 0:
-                if n%2 == 0:
-                    out = P
-                else:
-                    out = N
-            elif colors_sum > 0:
-                out = L
-            else:
-                out = R
-        # Recursively determine the ouctome from the games options...
-        else:     
-            # Set of the outcomes of Ups options
-            up_ops_otcms = set()
-            # Set of the outcomes of Downs options
-            dwn_ops_otcms = set()
-            # Recursively determine the outcome of each of Ups options.
-            ups_ops = self.up_options()
-            for x in ups_ops:
-                option = ups_ops[x]
-                up_ops_otcms.add(option.outcome())
-                # If both a second player win and a win for Up appear as options 
-                # outcomes we can stop looking.
-                if {P,L} in up_ops_otcms:
-                    break
-            # Same for Downs options
-            dwn_ops = self.down_options()
-            for x in dwn_ops:
-                option = dwn_ops[x]
-                dwn_ops_otcms.add(option.outcome())
-                if {P,R} in dwn_ops_otcms:
-                    break
-            # Determine outcome via the outcomes of the options:
-            # First player to move wins. 
-            if {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms:
-                out = N
-            # Second player to move wins
-            elif {P, L} not in up_ops_otcms and {P,R} not in dwn_ops_otcms:
+        def option_outcomes(G):
+            # Useful variables
+            ###global count
+            ###global rec_calls
+            ###rec_calls += 1
+            elems = frozenset(G.elements())
+            n = len(G)
+            e = dag.number_of_edges(G.cover_relations())
+            color_sum = G.color_sum()
+            # Possible outcomes
+            N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
+            # Base cases for recursion
+            if n == 0:
                 out = P
-            # Up wins no matter who moves first
-            elif {P, L} & up_ops_otcms and {P,R} not in dwn_ops_otcms:
+            elif color_sum == n:
                 out = L
-            # Down wins no matter who moves first:
-            # {P, L} not in up_ops_otcms and {P,R} & dwn_ops_otcms
-            else:
+            elif color_sum == -n:
                 out = R
+            elif e == 0:
+                if color_sum == 0:
+                    if n%2 == 0:
+                        out = P
+                    else:
+                        out = N
+                elif color_sum > 0:
+                    out = L
+                else:
+                    out = R
+            # Recursively determine the ouctome from options
+            else:
+                # Set of the outcomes of Ups options in G.
+                up_ops_otcms = set()
+                # Set of the outcomes of Downs options in G.
+                dwn_ops_otcms = set()
+                # Recursively determine the outcome of each of Ups options.
+                up_ops = G.up_options()
+                for x in up_ops:
+                    G_L = up_ops[x]
+                    sub_elems = frozenset(G_L.elements())
+                    if sub_elems in sub_outcomes:
+                        up_ops_otcms.add(sub_outcomes[sub_elems])
+                        ###count += 1
+                    else:
+                        up_ops_otcms.add(option_outcomes(G_L))  
+                # Same for Downs options
+                dwn_ops = G.down_options()
+                for x in dwn_ops:
+                    G_R = dwn_ops[x]
+                    sub_elems = frozenset(G_R.elements())
+                    if sub_elems in sub_outcomes:
+                        dwn_ops_otcms.add(sub_outcomes[sub_elems])
+                        ###count += 1
+                    else:
+                        dwn_ops_otcms.add(option_outcomes(G_R))
+                # Determine outcome via the outcomes of the options:
+                # First player to move wins.
+                if {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms:
+                    out = N
+                # Second player to move wins
+                elif not {P, L} & up_ops_otcms and not {P, R} & dwn_ops_otcms:
+                    out = P
+                # Up wins no matter who moves first
+                elif {P, L} & up_ops_otcms and not {P,R} & dwn_ops_otcms:
+                    out = L
+                # Down wins no matter who moves first:
+                # not {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms
+                else:
+                    out = R
+            sub_outcomes[elems] = out
+            return out
+        ###global rec_calls
+        ###rec_calls = 0
+        ###global count
+        ###count = 0
+        # Dict to store outcomes of subpositioins keyed by elements of 
+        # subposition (memoization).
+        sub_outcomes = {}
+        # Recursively determine outcome.
+        out = option_outcomes(self)
         return out
     
     def __neg__(self):
