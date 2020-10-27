@@ -68,7 +68,7 @@ def total_orders(orders):
     return nim_like
 
 class NimLikeGame(UpDown):
-    ''' Subclass of Updaown for NIM-like games of upset-downset.
+    ''' Subclass of UpDown for NIM-like games of upset-downset.
     '''
     def __init__(self, heaps):
         ''' Initializes an 'all green' game of upset-downset on a disjoint 

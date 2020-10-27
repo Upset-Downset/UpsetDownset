@@ -93,7 +93,7 @@ def complete_bipartite_union(graphs):
     return complete_bipartite
 
 class KGame(UpDown):
-    ''' Subclass of Updaown for games of upset-downset on posets whose Hasse 
+    ''' Subclass of UpDown for games of upset-downset on posets whose Hasse 
     diagram is a disjoint union of (horizontally-oriented) complete bipartite 
     graphs.
     '''
