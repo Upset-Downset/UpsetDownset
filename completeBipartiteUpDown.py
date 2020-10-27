@@ -38,7 +38,7 @@ def complete_bipartite_union(graphs):
     bipartite_positions = {}
     complete_bipartite = {'relations':cover_relations, 'positions':bipartite_positions}
     # variables to store the total number of elements we've processed and the
-    # largest x-coordinate we've assigned we loop over the graphs
+    # largest x-coordinate we've assigned as we loop over the graphs
     last_count = 0  
     last_x = 0
     for graph in graphs:
