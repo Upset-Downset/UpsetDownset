@@ -107,15 +107,14 @@ class NimLikeGame(UpDown):
         bin_heaps = [int_to_bin(heap) for heap in self._heaps]
         n = max(len(bin_heap) for bin_heap in bin_heaps)
         bin_heaps = [bin_heap.zfill(n) for bin_heap in bin_heaps]
-        bin_heaps = [list(bin_heap) for bin_heap in bin_heaps]
-        # convert binary heap sizes to numpy array and compute binary sum of 
-        # heaps without carrying!
-        H = np.array(bin_heaps)
-        H = H.astype(int)
-        S = H.sum(0) 
-        S = np.mod(S,2)
-        S = S.astype(str)
-        S = list(S)
-        bin_nim_sum = ''.join(S)
-        _nim_sum = int(bin_nim_sum,2)
+        # connvert binary strings to lists of bits
+        bin_heaps = [list(bin_heap) for bin_heap in bin_heaps] 
+        bin_heaps = [list(map(int,bin_heap)) for bin_heap in bin_heaps]
+        # compute ethe nim sum
+        _nim_sum = 0
+        for i in range(n):
+            digit = 0
+            for bin_heap in bin_heaps:
+                digit = (digit + bin_heap[-1-i]) % 2
+            _nim_sum += digit*(2**i)
         return _nim_sum

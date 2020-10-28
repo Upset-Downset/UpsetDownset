@@ -283,12 +283,12 @@ def transitive_closure(G):
         https://en.wikipedia.org/wiki/Transitive_closure
          
     '''
-    tc = {}
+    transitive_closure = {}
     # Loop over all nodes of G, adding all descendants to adjacency list in 
     # transitive closure. 
     for v in G:
-        tc[v] = descendants(G,v)
-    return tc
+        transitive_closure[v] = descendants(G,v)
+    return transitive_closure
 
 def transitive_reduction(G):
     ''' Returns the transitive reduction of the directed acyclic** graph 'G'.
@@ -307,10 +307,10 @@ def transitive_reduction(G):
     ** It is assumed that 'G' is acyclic, we do not check.
     
     References:
-        - https://en.wikipedia.org/wiki/Transitive_reduction
         - https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/dag.html
+        - https://en.wikipedia.org/wiki/Transitive_reduction
     '''                 
-    tr = {}
+    transitive_reduction = {}
     # Store descendants of each node in G in a dict as they are needed so we 
     # don't compute more times than necessary.
     G_descendants = {}
@@ -331,8 +331,8 @@ def transitive_reduction(G):
                 # transitive reduction
                 tr_adj_v -= G_descendants[u]
         # update v's adjaceny list in transitive reduction
-        tr[v] = list(tr_adj_v)
-    return tr
+        transitive_reduction[v] = list(tr_adj_v)
+    return transitive_reduction
 
 def longest_path_lengths(G, direction = 'outgoing'):
     ''' Returns the length of the longest path 'outgoing' (optionally, incoming) 
@@ -397,9 +397,8 @@ def connected_components(G):
     return None
 
 def edge_list(G):
-    '''
+    '''Returns list of edges.
     
-
     Parameters
     ----------
     G : dict
@@ -420,7 +419,6 @@ def edge_list(G):
     #collect all the pairs.
     for i in nodes:
         for j in G[i]:
-            edges.append((i,j))
-    
+            edges.append((i,j))   
     return edges
     
