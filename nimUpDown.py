@@ -8,17 +8,33 @@ Created on Sat Oct 10 12:46:57 2020
 
 from upDown import *
 import dagUtility as dag
+import numpy as np
 import random
 
+def int_to_bin(n):
+    '''
+    Parameters
+    ----------
+    n : int
+
+    Returns
+    -------
+    str
+        binary representation of the integer n as a string.
+
+    '''
+    return bin(n).replace("0b", "")
+
+
 def total_orders(orders):
-    ''' Returns poset cover relations and Hasse Diagram node positions
-    for a disjoint sum of totally ordered posets.
+    ''' Returns poset cover relations and Hasse diagram node positions
+    for a disjoint union of totally ordered sets.
     
     Parameters
     ----------
     orders : list
         positive intgers, each representing the cardinality of the corresponding 
-        total order
+        total order.
 
     Returns
     -------
@@ -52,22 +68,17 @@ def total_orders(orders):
     return nim_like
 
 class NimLikeGame(UpDown):
-    ''' Subclass of Updaown for NIM-like games of upset-downset.
+    ''' Subclass of UpDown for NIM-like games of upset-downset.
     '''
-    def __init__(self, heaps, colored = False):
-        ''' Initializes a game of upset-downset on a disjoint union of totally 
-        ordered posets. Optionally colored, all green by default and randomly 
-        otherwise.
+    def __init__(self, heaps):
+        ''' Initializes an 'all green' game of upset-downset on a disjoint 
+        union of totally ordered posets. (Equivalent to a game of NIM!)
         
         Parameters
         ----------
         heaps : list (positive integers)
             each element of the list represents a NIM heap of the corresponding 
             size. 
-        colored : bool, optional
-            determines the coloring of the underlying poset. If 'True' the 
-            elements will be colored randomly. Otherwise, all elements will be 
-            colored green.
 
         Returns
         -------
@@ -75,11 +86,35 @@ class NimLikeGame(UpDown):
 
         '''
         n = sum(heaps)
-        if colored:
-            coloring = {i: random.choice([-1,0,1]) for i in range(n)}
-        else:
-            coloring = {i:0 for i in range(n)}
+        coloring = {i:0 for i in range(n)}
         orders = total_orders(heaps)
         covers = orders['relations']
         UpDown.__init__(self, covers, coloring, covers = True)
+        self._heaps = heaps
         self._positions = orders['positions']  # USE THIS TO PLOT....
+        
+    # def gameboard(self):
+                    
+    def nim_sum(self):
+        ''' Returns the NIM sum of the game.
+        -------
+        _nim_sum : int (nonnegative)
+            to compute the NIM sum convert the heap sizes to binarty and sum them 
+            without carrying!
+
+        '''
+        # write each heap size as binary string each having a common length.
+        bin_heaps = [int_to_bin(heap) for heap in self._heaps]
+        n = max(len(bin_heap) for bin_heap in bin_heaps)
+        bin_heaps = [bin_heap.zfill(n) for bin_heap in bin_heaps]
+        # connvert binary strings to lists of bits
+        bin_heaps = [list(bin_heap) for bin_heap in bin_heaps] 
+        bin_heaps = [list(map(int,bin_heap)) for bin_heap in bin_heaps]
+        # compute ethe nim sum
+        _nim_sum = 0
+        for i in range(n):
+            digit = 0
+            for bin_heap in bin_heaps:
+                digit = (digit + bin_heap[-1-i]) % 2
+            _nim_sum += digit*(2**i)
+        return _nim_sum
