@@ -7,9 +7,9 @@ Created on Thu Sep 24 10:16:36 2020
 
 Play a randomized version of UpDown through the terminal.
 """
-import upDown as uD
 import matplotlib.pyplot as plt
 from randomUpDown import RandomGame
+import agents
 
 #set marker
 #set continuation token
@@ -52,9 +52,22 @@ while cont == 'y':
     #initialize a new game if not playing on a previous one.
     if same_game != 'y':
     	G = RandomGame(n, colored=colored)
+    
+    play_with_agent = input("Play against the computer? [y/n]: ")
+    if play_with_agent == 'y':
+        agent_order = input("Computer is player 1 [1], player 2 [2], or both[b]?: ")
+        if agent_order == '1':
+            agent_1 = agents.random_agent
+            agent_2 = None
+        if agent_order == '2':
+            agent_2 = agents.random_agent
+            agent_1 = None
+        if agent_order == 'b':
+            agent_2 = agents.random_agent
+            agent_1 = agents.random_agent
         
     #play the game
-    G.play(marker=marker)
+    G.play(marker=marker, agent_1=agent_1, agent_2=agent_2)
     
     #do you want to keep playing?
     cont = input("Play again? [y/n]: ")

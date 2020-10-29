@@ -9,6 +9,7 @@ Created on Mon Sep 28 22:41:10 2020
 import dagUtility as dag
 import upDownPlot as uDP
 import matplotlib.pyplot as plt
+import random
 
 class UpDown(object):
     ''' Abstract class for construction of an upset-downset game from a 
@@ -322,14 +323,14 @@ class UpDown(object):
         None
 
         '''
-        uDP.up_down_plot(self, marker=marker)
+        uDP.UpDownPlot(self, marker=marker)
         plt.show()
         return None
     
 ##############################################################################    
 ########################### GAMEPLAY #########################################
 ##############################################################################
-    def play(self, marker='o'):
+    def play(self, marker='o', agent_1 = None, agent_2 = None):
         ''' Interactively play the game.
         
         Parameters
@@ -341,18 +342,25 @@ class UpDown(object):
         -------
         None.
         '''
+        
+        if agent_1 != None or agent_2 != None:
+            import time
+            
         #close any open plots.
         plt.close()
         #make sure interactivity is off.
         plt.ioff()
         
-        #decide which player is first.
         players = ['Up', 'Down']
-        first = input("Which player will start, 'Up' or 'Down'? ")       
-        
-        #simple catch if input is incorect.
-        while first not in players:
-            first = input("Please choose 'Up' or 'Down'! ")
+        if agent_1 == None or agent_2 == None:
+            #decide which player is first.
+            first = input("Which player will start, 'Up' or 'Down'? ")       
+            
+            #simple catch if input is incorect.
+            while first not in players:
+                first = input("Please choose 'Up' or 'Down'! ")
+        else:
+            first = random.choice(players)
         
         #assign remaining player option to second.
         players.remove(first)
@@ -371,10 +379,10 @@ class UpDown(object):
         #fig_info contains various dicts that point to specific
         # objects in our figure. These are used to remove
         # these objects from the figure as the game progresses.
-        fig_info = uDP.up_down_plot(self, marker=marker)
+        gameboard = uDP.UpDownPlot(self, marker=marker)
         
         #give the game a boring title
-        fig_info[0].suptitle("Current Game")
+        gameboard.figure.suptitle("Current Game")
         
         #shows the initial figure before starting the game.
         plt.pause(0.01)
@@ -407,101 +415,175 @@ class UpDown(object):
                 #first player's turn
                 if i % 2 == 0:
                     
-                    #first player chooses a node
-                    u = int(input(first + ", choose a Blue or Green node: "))
+                    if agent_1 == None:
+                        #first player chooses a node
+                        u = int(input(first + ", choose a Blue or Green node: "))
+                        
+                        #catch if choice was not valid.
+                        while not (u in first_options):
+                            print(u, " is not a valid choice.")
+                            u = int(input(first + ", choose a Blue or Green node: ")) 
+                        
+                        #get resulting UpDown after removing upset
+                        sub_game = self.up_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show the current figure.
+                        plt.pause(0.01)
                     
-                    #catch if choice was not valid.
-                    while not (u in first_options):
-                        print(u, " is not a valid choice.")
-                        u = int(input(first + ", choose a Blue or Green node: ")) 
-                    
-                    #get resulting UpDown after removing upset
-                    sub_game = self.up_options()[u]
-                    
-                    #remove objects from figure and fig_info which are no longer
-                    # in play.
-                    uDP.leave_subgraph_fig(sub_game, fig_info)
-                    
-                    #make the current game self.
-                    self = sub_game
-                    
-                    #show the current figure.
-                    plt.pause(0.01)
-                    
+                    else:
+                        print("The computer is choosing...")
+                        #time.sleep(1)
+                        
+                        u = agent_1(self, first)
+                        
+                        #get resulting UpDown after removing upset
+                        sub_game = self.up_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show the current figure.
+                        plt.pause(0.01)
                 #second player's turn
                 else:
-                    
-                    #second player chooses a node
-                    u = int(input(second + ", choose a Red or Green node: "))
-                    
-                    #catch if choice was not valid.
-                    while not (u in second_options):
-                        print(u, " is not a valid choice.")
-                        u = int(input(second + ", choose a valid Red or Green node: "))
-                    
-                    #get resulting UpDown after removing downset
-                    sub_game = self.down_options()[u]
-                    
-                    #remove objects from figure and fig_info which are no longer
-                    # in play.
-                    uDP.leave_subgraph_fig(sub_game, fig_info)
-                    
-                    #make the current game self.
-                    self = sub_game
-                    
-                    #show the current figure.
-                    plt.pause(0.01)
+                    if agent_2 == None:
+                        #second player chooses a node
+                        u = int(input(second + ", choose a Red or Green node: "))
+                        
+                        #catch if choice was not valid.
+                        while not (u in second_options):
+                            print(u, " is not a valid choice.")
+                            u = int(input(second + ", choose a valid Red or Green node: "))
+                        
+                        #get resulting UpDown after removing downset
+                        sub_game = self.down_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show the current figure.
+                        plt.pause(0.01)
+                    else:
+                        print("The computer is choosing...")
+                        #time.sleep(1)
+                        
+                        u = agent_2(self, second)
+                        
+                        #get resulting UpDown after removing upset
+                        sub_game = self.down_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show the current figure.
+                        plt.pause(0.01)
             
             #game played when first player is "Down".
             else:
                 
                 #first player's turn.
                 if i % 2 == 0:
-                    
-                    #first player chooses a node.
-                    u = int(input(first + ", choose a Red or Green node: "))
-                    
-                    #catch if choice was not valid.
-                    while not (u in first_options):
-                        print(u, " is not a valid choice.")
-                        u = int(input(first + ", choose a Red or Green node: ")) 
-                    
-                    #get resulting UpDown after removing downset
-                    sub_game = self.down_options()[u]
-                    
-                    #remove objects from figure and fig_info which are no longer
-                    # in play.
-                    uDP.leave_subgraph_fig(sub_game, fig_info)
-                    
-                    #make the current game self.
-                    self = sub_game
-                    
-                    #show current figure.
-                    plt.pause(0.01)
-                
+                    if agent_1 == None:
+                        #first player chooses a node.
+                        u = int(input(first + ", choose a Red or Green node: "))
+                        
+                        #catch if choice was not valid.
+                        while not (u in first_options):
+                            print(u, " is not a valid choice.")
+                            u = int(input(first + ", choose a Red or Green node: ")) 
+                        
+                        #get resulting UpDown after removing downset
+                        sub_game = self.down_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show current figure.
+                        plt.pause(0.01)
+                    else:
+                        print("The computer is choosing...")
+                        #time.sleep(1)
+                        
+                        u = agent_1(self, first)
+                        
+                        #get resulting UpDown after removing upset
+                        sub_game = self.down_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show the current figure.
+                        plt.pause(0.01)
+                        
                 #second player's turn
                 else:
-                    
-                    #second player chooses a node.
-                    u = int(input(second + ", choose a Blue or Green node: "))
-                    
-                    #catch if choice was not valid.
-                    while not (u in second_options):
-                        print(u, " is not a valid choice.")
-                        u = int(input(second + ", choose a valid Blue or Green node: "))
-                    
-                    #get resulting UpDown after removing upset
-                    sub_game = self.up_options()[u]
-                    
-                    #remove objects from figure and fig_info which are no longer
-                    # in play.
-                    uDP.leave_subgraph_fig(sub_game, fig_info)
-                    
-                    #make the current game self.
-                    self = sub_game
-                    
-                    #show current figure.
-                    plt.pause(0.01)
+                    if agent_2 == None:
+                        #second player chooses a node.
+                        u = int(input(second + ", choose a Blue or Green node: "))
+                        
+                        #catch if choice was not valid.
+                        while not (u in second_options):
+                            print(u, " is not a valid choice.")
+                            u = int(input(second + ", choose a valid Blue or Green node: "))
+                        
+                        #get resulting UpDown after removing upset
+                        sub_game = self.up_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show current figure.
+                        plt.pause(0.01)
+                    else:
+                        print("The computer is choosing...")
+                        #time.sleep(1)
+                        
+                        u = agent_2(self, second)
+                        
+                        #get resulting UpDown after removing upset
+                        sub_game = self.up_options()[u]
+                        
+                        #remove objects from figure and fig_info which are no longer
+                        # in play.
+                        gameboard.leave_subgraph_fig(sub_game)
+                        
+                        #make the current game self.
+                        self = sub_game
+                        
+                        #show the current figure.
+                        plt.pause(0.01)
+                        
             
             #update player tokern (i.e. change player turn)
             i += 1   
@@ -511,11 +593,11 @@ class UpDown(object):
         if i % 2 == 0:
             print(second + " wins!")
             #change figure title to declare the winner.
-            fig_info[0].suptitle(second + " wins!")
+            gameboard.figure.suptitle(second + " wins!")
         else:
             print(first + " wins!")
             #change figure title to declare the winner.
-            fig_info[0].suptitle(first + " wins!")
+            gameboard.figure.suptitle(first + " wins!")
         
         #show figure with winner title declaration.
         plt.pause(0.01)
