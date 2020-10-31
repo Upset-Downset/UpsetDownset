@@ -42,9 +42,23 @@ def random_poset_relations(n):
             r -= 1
         else:
             random_relations[i].pop()
-        # Reduce to cover relations.
+    # Reduce to cover relations.
     random_covers = dag.transitive_reduction(random_relations)
-    return random_covers
+    # determine number of components in Hasse diagram.
+    components = dag.connected_components(random_relations)
+    # If more than one component relabel elements so that each compnenet is 
+    # labelled consecutively.
+    if len(components) >1:
+        random_covers_relabelled = {}
+        relabel_index = 0
+        for c in components:
+            c_adj = dict(filter(lambda i: i[0] in c, random_covers.items()))
+            c_adj_relabel = dag.integer_relabel(c_adj, relabel_index)['relabelled graph']
+            relabel_index += len(c)
+            random_covers_relabelled.update(c_adj_relabel)
+        return random_covers_relabelled
+    else: 
+        return random_covers
 
 class RandomGame(UpDown):
     ''' Subclass of Updaown for randomly generated games of upset-downset.

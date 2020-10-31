@@ -11,6 +11,45 @@ an UpDOwn object we don't check for it here.)
 
 @author: Charlie 
 """
+
+import copy
+
+def integer_relabel(G,k):
+    ''' Relabel nodes of the directed graph 'G' as consecutive integers 
+    staring from 'k'.
+    
+    Parameters
+    
+    ----------
+    G : dict
+        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        by node.)
+    k : int
+        index to start consecutive integer relabelling of nodes.
+
+    Returns
+    -------
+    dict
+        of dicts:  adjacecny dict representation of a relabelled directed graph
+        'G' keyed by 'relabelled graph', and dict of the corresponding relabelling 
+        map keyed by 'relabel map'.
+            - 'graph' is an adjacecny representation of the directed graph 'G' 
+            (adjacecny lists keyed by node) under the new node labelling.
+            - 'relabelling' is a dict of new node labels (consecutive integers 
+            starting from 'k') keyed by old node labels. 
+    '''
+    graph = {}
+    relabel_map = {}
+    relabelled = {'relabelled graph': graph, 'relabel map': relabel_map}
+    label = k
+    for v in G:
+        relabel_map[v] = label
+        label += 1
+    for v in G:
+        graph[relabel_map[v]] = []
+        for u in G[v]:
+            graph[relabel_map[v]].append(relabel_map[u])
+    return relabelled
         
 def subgraph(G, nodes):
     ''' Returns the subgraph of the directed graph 'G' on 'nodes'.
@@ -38,7 +77,7 @@ def subgraph(G, nodes):
     return sub_graph
 
 def reverse(G):
-    ''' Returns the reverse of the (colored) directed graph 'G'.
+    ''' Returns the reverse of the directed graph 'G'.
     Parameters
     ----------
     G : dict 
@@ -57,6 +96,30 @@ def reverse(G):
         for u in G[v]:
             reverse[u].append(v)
     return reverse
+
+def edge_list(G):
+    '''Returns list of edges of the directed graph 'G'.
+    
+    Parameters
+    ----------
+    G : dict
+        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
+        keyed by node.)
+
+    Returns
+    -------
+    list
+        lists of ordered-pairs denoting the edges of G.
+
+    '''
+    #a list to store the edges
+    edges = []
+    #iterate over the nodes, then iterate over the the covers of that node.
+    #collect all the pairs.
+    for v in G:
+        for u in G[v]:
+            edges.append((u,v))   
+    return edges
 
 def number_of_edges(G):
     ''' Return the number of edges in the directed graph 'G'.
@@ -377,10 +440,8 @@ def longest_path_lengths(G, direction = 'outgoing'):
     return max_path_lengths
 
 def connected_components(G):
-    ''' TO BE WRITTEN... Returns the nodes in each component of the undirected 
+    ''' Returns the nodes in each component of the undirected 
     graph underlying the directed graph 'G"."
-    
-
 
     Parameters
     ----------
@@ -391,34 +452,43 @@ def connected_components(G):
     Returns
     -------
     list
-        lists of nodes in each connected compnent of the undirected graph 
+        set of nodes in each connected compnent of the undirected graph 
         underlying 'G'.
     '''
-    return None
+    ############# RECURSIVE HELPER ###########################################
+    def dfs_visit(G,v):
+        discovery[v] = 0
+        for u in undirected[v]:
+            if discovery[u] == -1:
+                v_component.add(u)
+                dfs_visit(undirected,u)  
+        # Done with v.
+        discovery[v] = 1
+    ########################################################################## 
+    # initialize an undirected version of G.    
+    rev = reverse(G)
+    undirected = copy.deepcopy(G)
+    for v in undirected:
+        undirected[v].extend(rev[v])
+    # store nodes in G in a set to be updated as we discover each component.
+    nodes = set(G)
+    # to store the components
+    components = []
+    # Mark each vertex before discovery with -1, with 0 once discovered and 
+    # 1 when we've finished exploring its adjacency list.
+    discovery = {v:-1 for v in G}
+    # choose a node from G.
+    v = nodes.pop()
+    # dfs to find all components of G, updated nodes set as we go.
+    while True:
+        v_component = {v}
+        dfs_visit(undirected,v)
+        components.append(v_component)
+        nodes = nodes - v_component
+        if nodes:
+            v = nodes.pop()
+        else: 
+            break
+    return components
 
-def edge_list(G):
-    '''Returns list of edges.
-    
-    Parameters
-    ----------
-    G : dict
-        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
-        keyed by node.)
-
-    Returns
-    -------
-    list
-        lists of two element lists denoting the edges of G.
-
-    '''
-    #a list to store the edges
-    edges = []
-    #nodes of the graph
-    nodes = G.keys()
-    #iterate over the nodes, then iterate over the the covers of that node.
-    #collect all the pairs.
-    for i in nodes:
-        for j in G[i]:
-            edges.append((i,j))   
-    return edges
     
