@@ -309,7 +309,7 @@ class UpDown(object):
 ############################### PLOTTING ######################################
 ##############################################################################
     
-    def gameboard(self, marker = 'o'):
+    def gameboard(self, marker = 'o', nim=False, bipartite=False):
         ''' Plots the game. I.e. the (colored) Hasse diagram of the underlying 
         poset.
         
@@ -323,14 +323,14 @@ class UpDown(object):
         None
 
         '''
-        uDP.UpDownPlot(self, marker=marker)
+        uDP.UpDownPlot(self, marker=marker, nim=nim, bipartite=bipartite)
         plt.show()
         return None
     
 ##############################################################################    
 ########################### GAMEPLAY #########################################
 ##############################################################################
-    def play(self, marker='o', agent_1 = None, agent_2 = None):
+    def play(self, marker='o', nim=False, bipartite=False, agent_1 = None, agent_2 = None):
         ''' Interactively play the game.
         
         Parameters
@@ -379,7 +379,7 @@ class UpDown(object):
         #fig_info contains various dicts that point to specific
         # objects in our figure. These are used to remove
         # these objects from the figure as the game progresses.
-        gameboard = uDP.UpDownPlot(self, marker=marker)
+        gameboard = uDP.UpDownPlot(self, marker=marker, nim=nim, bipartite=bipartite)
         
         #give the game a boring title
         gameboard.figure.suptitle("Current Game")

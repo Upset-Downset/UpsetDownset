@@ -17,7 +17,9 @@ import agents
 marker = 'o'
 cont = 'y'
 same_game = 'n'
-
+agent_1=None
+agent_2=None
+print("\n\n\n\n---------------------------\n---------------------------\n---------------------------\n---------------------------\n-------Upset-Downset-------\n---------------------------\n---------------------------\n---------------------------\n---------------------------\n\n\n\n")
 #keep playing games if continuation token is on "y".
 while cont == 'y':
     
