@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 30 20:40:51 2020
-
-@author: charlie
+@author: Charles Petersen and Jamison Barsotti
 """
 
-from upDown import *
+import upDown as ud
 import dagUtility as dag
 import random
 
@@ -20,7 +18,8 @@ def random_poset_relations(n):
     Returns
     -------
     dict
-        cover relations for poset. List of (upper) covers keyed by element.
+        cover relations for randomly generated poset. List of (upper) covers 
+        keyed by element.
 
     '''
     random_relations = {i:[] for i in range(n)}
@@ -37,7 +36,7 @@ def random_poset_relations(n):
             j = random.randint(0, n-1)
         # Add relation i<j.
         random_relations[i].append(j)
-        # Check for anti-symmetry.
+        # Check for acycles in Hasse diagram
         if dag.is_acyclic(random_relations):
             r -= 1
         else:
@@ -60,7 +59,7 @@ def random_poset_relations(n):
     else: 
         return random_covers
 
-class RandomGame(UpDown):
+class RandomGame(ud.UpDown):
     ''' Subclass of Updaown for randomly generated games of upset-downset.
     '''
     def __init__(self, n, colored = False):
@@ -85,6 +84,6 @@ class RandomGame(UpDown):
         if colored:
             coloring = {i: random.choice([-1,0,1]) for i in range(n)}
         else:
-            coloring = {i:0 for i in range(n)}
+            coloring = None
         random_covers = random_poset_relations(n)
-        UpDown.__init__(self, random_covers, coloring, covers = True)
+        ud.UpDown.__init__(self, random_covers, coloring = coloring, covers = True)

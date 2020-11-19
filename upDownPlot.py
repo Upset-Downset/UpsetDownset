@@ -1,32 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Sep 24 08:13:51 2020
-
-@author: jamison
+@author: Charles Petersen and Jamison Barsotti
 """
+
 import matplotlib.pyplot as plt
-from dagUtility import *
+import dagUtility as dag                               
 
 class UpDownPlot(object):
     '''
     Abstract class for constructing a visualization of an UpDown object.
     '''
 
-
-
-    def __init__(self, UD, marker='o', nim=False, bipartite=False):
+    def __init__(self, game, marker='o'):               
         """
-        Plots the underlying dag of an instance of the class UpDown.
-        A node in the graph is plotted at the point (n,l), where n is the
-        integer label of the node and l is its level. Since node --> level
-        preserves the order of cover relations, this presentation will
-        visually preserve up-sets and down-sets.
+        Plots the underlying Hasse diagram (transitively reduced DAG) of the 
+        poset underlying an instance of class UpDown using the 'hasse_coordinates'
+        attribute: By default a node in the graph is plotted at the point (n,l), 
+        where n is the integer label of the node and l is its level. 
+        (See levels() method). Since node --> level preserves the order of 
+        cover relations, this presentation will visually preserve up-sets and 
+        down-sets. 
         
     
         Parameters
         ----------
-        UD : UpDown
+        gane : UpDown
             UD is an instance of class UpDown from the module upDown. 
             We use UD to extract the following information.
             0) node labels
@@ -49,15 +48,12 @@ class UpDownPlot(object):
             colordict = {-1 : '#F05252', 0 : '#09D365', 1 : '#5284F0'}
             return colordict[n]
         
-        #get the cover relations, color dictionary, node and edge lists.
-        #get levels for each node.        
-        covers = UD._cover_relations
-        colors = UD._coloring_map
-        nodes = list(covers.keys())
-        edges = edge_list(covers)
-        levels = UD.levels()
-            
-            
+        #get the cover relations, color dictionary, node and edge lists.      
+        covers = game.cover_relations            
+        colors = game.coloring
+        nodes = game.elements
+        edges = dag.edge_list(covers)
+        pos = game.hasse_coordinates             
             
         #Set up the figure and an axes.
         #The empty dictionaries will be filled pointers to the lines and labels
@@ -68,53 +64,30 @@ class UpDownPlot(object):
         fig_vertices = {}
         fig_vertex_labels = {}
     
-        if not nim and not bipartite:
-            #Iterate over the edge set
-            for i in edges:
-                #add a black line segment to the figure connecting the vertices i[0] and i[1].
-                ax.plot([i[0],i[1]],[levels[i[0]],levels[i[1]]], color='000000')  
-                #update the dictionary fig_edges with a pointer to the line segment in the figure.
-                fig_edges[(i[0],i[1])] = ax.lines[-1]
+        #Iterate over the edge set.
+        for i in edges:
+            #add a black line segment to the figure connecting the vertices i[0] and i[1].
+            ax.plot([pos[i[0]][0],pos[i[1]][0]],[pos[i[0]][1],pos[i[1]][1]], color='000000')  
+            #update the dictionary fig_edges with a pointer to the line segment in the figure.
+            fig_edges[(i[0],i[1])] = ax.lines[-1]
                             
-            #Iterate over the node set
-            for i in nodes:
-                #get the color of the node
-                c = color(colors[i])
-                
-                #add a point to the figure corresponding to (i, levels[i]) with color c.
-                ax.plot(i,levels[i], marker=marker, color=c, markersize=18)
-                #add a label to the vertex
-                ax.annotate(str(i), xy=(i-.025,levels[i]-.025))
-                #update the fic_vertices and fig_vertex_labels dictionaries with
-                #pointers to the new additions.
-                fig_vertices[i] = ax.lines[-1]
-                fig_vertex_labels[i] = ax.texts[-1]
-        else:
-            pos = UD._positions
-            #Iterate over the edge set
-            for i in edges:
-                #add a black line segment to the figure connecting the vertices i[0] and i[1].
-                ax.plot([pos[i[0]][0],pos[i[1]][0]],[pos[i[0]][1],pos[i[1]][1]], color='000000')  
-                #update the dictionary fig_edges with a pointer to the line segment in the figure.
-                fig_edges[(i[0],i[1])] = ax.lines[-1]
-                            
-            #Iterate over the node set
-            for i in nodes:
-                #get the color of the node
-                c = color(colors[i])
-                
-                #add a point to the figure corresponding to (i, levels[i]) with color c.
-                ax.plot(pos[i][0],pos[i][1], marker=marker, color=c, markersize=18)
-                #add a label to the vertex
-                ax.annotate(str(i), xy=(pos[i][0],pos[i][1]))
-                #update the fic_vertices and fig_vertex_labels dictionaries with
-                #pointers to the new additions.
-                fig_vertices[i] = ax.lines[-1]
-                fig_vertex_labels[i] = ax.texts[-1]
+        #Iterate over the node set.
+        for i in nodes:
+            #get the color of the node
+            c = color(colors[i])     
+            #add a point to the figure with color c.
+            ax.plot(pos[i][0],pos[i][1], marker=marker, color=c, markersize=18)
+            #add a label to the vertex
+            ax.annotate(str(i), xy=(pos[i][0],pos[i][1]))
+            #update the fic_vertices and fig_vertex_labels dictionaries with
+            #pointers to the new additions.
+            fig_vertices[i] = ax.lines[-1]
+            fig_vertex_labels[i] = ax.texts[-1]
         
         #don't plot the x or y axes.
         plt.axis('off')
          
+        # Set attributes
         self.figure = fig
         self.figure_edges = fig_edges
         self.figure_vertices = fig_vertices
@@ -153,9 +126,9 @@ class UpDownPlot(object):
         """
         
         #Get the nodes and edges of H.
-        covers = H._cover_relations
-        nodes = list(covers.keys())
-        edges = edge_list(covers)
+        covers = H.cover_relations             
+        nodes = H.elements                       
+        edges = dag.edge_list(covers)
         
         #Get dictionaries for the information of the figure of 
         #the subgraph H in G.
