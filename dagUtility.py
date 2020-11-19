@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Algorithms for directed (acyclic) graphs provided as utility for the UpDown 
-class.
-
-    
-(As noted in their docstrings, a number of the algorithms require acyclicity.
-As this condition is checked via the is_acyclic() function upon instantiation of 
-an UpDOwn object we don't check for it here.)
-
-@author: Charlie 
+@author: Charles Petersen and Jamison Barsotti
 """
 
 import copy
@@ -372,6 +364,8 @@ def transitive_reduction(G):
     References:
         - https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/dag.html
         - https://en.wikipedia.org/wiki/Transitive_reduction
+        
+    *** This is basically the exact algorithm found in networkx's dag source code!
     '''                 
     transitive_reduction = {}
     # Store descendants of each node in G in a dict as they are needed so we 

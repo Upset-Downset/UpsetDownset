@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Oct 10 12:46:57 2020
-
-@author: charlie
+@author: Charles Petersen and Jamison Barsotti
 """
 
-from upDown import *
-import dagUtility as dag
-import numpy as np
-import random
+import upDown as ud
 
-def int_to_bin(n):
-    '''
+def integer_to_binary(n):
+    ''' Returns the binary representation of af the integr 'n'.
     Parameters
     ----------
     n : int
@@ -20,54 +15,69 @@ def int_to_bin(n):
     Returns
     -------
     str
-        binary representation of the integer n as a string.
+        binary representation of the integer 'n'.
 
     '''
     return bin(n).replace("0b", "")
 
 
-def total_orders(orders):
-    ''' Returns poset cover relations and Hasse diagram node positions
-    for a disjoint union of totally ordered sets.
+def nim_relations(heaps):
+    ''' Returns poset cover relations for a disjoint union of totally ordered 
+    sets (Nim heaps).
     
     Parameters
     ----------
-    orders : list
+    heaps : list
         positive intgers, each representing the cardinality of the corresponding 
-        total order.
+        Nim heap.
 
     Returns
     -------
     dict
-        of dicts: dict of poset relations keyed by 'relations', and dict of the
-        corresponding Hasse diagram node positions keyed by 'positions'.     
-            - 'relations' dict is keyed by elements of the poset (consecutive 
-            nonnegative integers starting at 0) with corresponding value being 
-            the list of (upper) covers for that element.
-            - 'positions' dict is keyed by elements of the poset (consecutive 
-            nonnegative integers starting at 0) with corresponding value being 
-            the tuple containg the xy-position of that element in the Hasse 
-            diagram of the poset.
+        keyed by elements of the poset (consecutive nonnegative integers 
+        starting at 0) with corresponding value being the list of (upper) covers 
+        for that element.
 
     '''
     cover_relations = {}
-    positions = {}
-    nim_like = {'relations':cover_relations, 'positions': positions}
-    heap_count = 0
     elem_count = 0
-    for k in orders:  
+    for k in heaps:  
         # Build relations for this heap, and add to cover relations
         heap_relations = {j:[j+1] for j in range(elem_count, elem_count+k-1)}
         heap_relations[elem_count+k-1] = []
         cover_relations.update(heap_relations)
-        # Build positions of rthis heap, amnd add to positions.
-        heap_positions = {j:(heap_count, j - elem_count) for j in range(elem_count, elem_count+k)}
-        positions.update(heap_positions)
+        elem_count += k
+    return cover_relations
+
+def nim_coordinates(heaps):
+    ''' Returns the coodinates of nodes in the Hasse diagram of a poset 
+    which is disjoint union of totally ordered sets (NIM heaps).
+
+    Parameters
+    ----------
+    heaps : list
+        positive intgers, each representing the cardinality of the corresponding 
+        NIM heap.
+
+    Returns
+    -------
+    coordinates : dict
+       xy-coordinates (tuple) of element in the Hasse diagram of the poset 
+       keyed by element.
+
+    '''
+    coordinates = {}
+    elem_count = 0
+    heap_count = 0
+    for k in heaps:
+        heap_coords = {j:(heap_count, j - elem_count) for j in \
+                       range(elem_count, elem_count+k)}
+        coordinates.update(heap_coords)
         elem_count += k
         heap_count += 1
-    return nim_like
+    return coordinates
 
-class NimLikeGame(UpDown):
+class NimLikeGame(ud.UpDown):
     ''' Subclass of UpDown for NIM-like games of upset-downset.
     '''
     def __init__(self, heaps):
@@ -85,26 +95,23 @@ class NimLikeGame(UpDown):
         None
 
         '''
-        n = sum(heaps)
-        coloring = {i:0 for i in range(n)}
-        orders = total_orders(heaps)
-        covers = orders['relations']
-        UpDown.__init__(self, covers, coloring, covers = True)
-        self._heaps = heaps
-        self._positions = orders['positions']  # USE THIS TO PLOT....
+        covers = nim_relations(heaps)
+        coordinates = nim_coordinates(heaps)
+        ud.UpDown.__init__(self, covers, coordinates = coordinates, covers = True)
+        # Set heaps attribute
+        self.heaps = heaps
         
-    # def gameboard(self):
                     
     def nim_sum(self):
-        ''' Returns the NIM sum of the game.
+        ''' Returns the NIM sum of the heaps in the game.
         -------
-        _nim_sum : int (nonnegative)
+        nim_sum : int (nonnegative)
             to compute the NIM sum convert the heap sizes to binarty and sum them 
             without carrying!
 
         '''
         # write each heap size as binary string each having a common length.
-        bin_heaps = [int_to_bin(heap) for heap in self._heaps]
+        bin_heaps = [integer_to_binary(heap) for heap in self.heaps]
         n = max(len(bin_heap) for bin_heap in bin_heaps)
         bin_heaps = [bin_heap.zfill(n) for bin_heap in bin_heaps]
         # connvert binary strings to lists of bits
@@ -118,3 +125,17 @@ class NimLikeGame(UpDown):
                 digit = (digit + bin_heap[-1-i]) % 2
             _nim_sum += digit*(2**i)
         return _nim_sum
+    
+    def outcome(self):
+        ''' Returns the outcome of the game. Overloads outcome method from 
+        UpDown class.
+        -------
+        str
+            'Previous' if the game is a second player win, and 'Next' if the
+            game is a first player win.
+        '''
+        ns = self.nim_sum()
+        if ns == 0:
+            return 'Previous'
+        else:
+            return 'Next'

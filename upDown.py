@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Sep 28 22:41:10 2020
-
-@author: Charlie & Jamison
+@author: Charles Petersen and Jamison Barsotti
 """
 
 import dagUtility as dag
-import upDownPlot as uDP
+import upDownPlot as udp                                                       
 import matplotlib.pyplot as plt
 import random
+import time
 
 class UpDown(object):
     ''' Abstract class for construction of an upset-downset game from a 
     blue-green-red partially ordered set (poset). 
     '''
-    def __init__(self, relations, coloring, covers = False):
+    def __init__(self, relations, coloring = None, coordinates = None, covers = False):
         '''
         Parameters
         ----------
@@ -24,62 +23,67 @@ class UpDown(object):
             being a list of elements greater than the key. The 'relations' may 
             contain some or all of the relational data of the poset with a few 
             caveats:
-                - The dictionary must contain a key for each element in the poset.
+                - The dictionary must contain a key for each element in the poset. 
                   (The dict value of a maximal element should be an empty list.)
+                - The elements are to be labelled by nonnegative integers.
+                - At a  minimum all cover relations must be present to obtain 
+                the intended poset.
                 - Reflexivity is assumed. Do not provide the reflexive relations.
-                  (No loops in the corresponding dag.)
-                - Anti-symmetry is checked via acylicity of the corresponding dag.
-                - Transitivity is forced via reachability in the corresponding dag.
-                  (In particular, the poset returned is the transitive closure of the 
-                  provided 'relations'.)
-            We identify posets with dags as usual:
-                    nodes of dag <----> elements of poset 
-                    reachability in dag <----> relation in poset 
-                    (b reahcbale from a in dag <----> a<b in poset) 
-        coloring: dict
+                (Refleive relations will give loops in the corresponding DAG.)
+                - Anti-symmetry is checked via acylicity of the corresponding DAG
+                - Transitivity is forced via reachability in the corresponding DAG.
+                (In particular, the poset returned is the transitive closure of the 
+                provided 'relations'.)
+            **We identify the underlying poset with its Hasse diagram (transitoively 
+            reduced directed acyclic graph, DAG) as usual:
+                    nodes of DAG <----> elements of poset 
+                    reachability in DAG <----> relation in poset 
+                    (b reahcbale from a in dag <----> a<=b in poset) 
+        coloring: dict, optional
             coloring map on elements in underlying poset. color keyed by element
-            where 1 (resp. 0, -1) represents blue (resp. green, red).
+            where 1 (resp. 0, -1) represents blue (resp. green, red). Default in None,
+            in this case all elements will be colored green.
+        coordinates: dict, optional
+            coordinates of vertices in Hasse diagram of unerlying poset (the 'gameboard')
+            keyed by corresponding poset elements: tuples should be of the 
+            following form: (horizontal coordinate, vertical coordinate). The 
+            default is 'None'. In this case horizontal coordinates are determined 
+            by the label of the element and the vertical coordinate is determined by 
+            the level of the element. (See the levels() method.) ***It is not 
+            recommended to alter the vertical coordinate expect by scaling.       
         covers : bool, optional
             set to 'True' if the given 'relations' are the (upper) covering 
-            relations on the underlying poset. (In this case, anti-symmetry will 
-            not be checked.) The default is False.
+            relations on the underlying poset. The default is False.
         '''
-        if not covers:
-            assert dag.is_acyclic(relations), 'The given relations are not anti-symmetric.'
-            self._cover_relations = dag.transitive_reduction(relations)
+        # Check for cycles in Hasse diagram
+        assert dag.is_acyclic(relations), \
+            'Check the relations. There is a cycle present in the Hasse diagram.'
+        # Set relations: if not given exactly the covering relations take 
+        # the transitive reduction.
+        if covers is False:
+            self.cover_relations = dag.transitive_reduction(relations)
         else:
-            self._cover_relations = relations
-        self._elements = list(self._cover_relations)
-        self._coloring_map = coloring
+            self.cover_relations = relations
+        # List of elements in poset
+        self.elements = list(self.cover_relations)
+        # Set coloring, if none given color all elements green
+        if coloring is None:
+            self.coloring = {x:0 for x in self.elements}
+        else:
+            self.coloring = coloring
+        # Set the coordinates of the elements in the Hasse diagram. 
+        if coordinates is None:
+            self.hasse_coordinates = {x:(x, self.levels()[x]) for x in self.elements}
+        else:
+            self.hasse_coordinates = coordinates
         
 ##############################################################################
 ######################### POSET ##############################################
 ##############################################################################
-        
-    def cover_relations(self):
-        ''' Returns the (upper) cover relations of the underlying poset.
-
-        Returns
-        -------
-        dict
-            list of (upper) covers keyed by element.
-            
-        '''
-        return self._cover_relations
-        
-    def elements(self):
-        ''' Returns all elements of the underlying poset.
-    
-        Returns
-        -------
-        list
-            all elements of the underlying poset
-
-        '''
-        return self._elements
     
     def __len__(self):
-        ''' Returns the cardinality of the underlying poset. 
+        ''' Returns the cardinality of the underlying poset. Overloads the 'len'
+        operator.
 
         Returns
         -------
@@ -87,29 +91,28 @@ class UpDown(object):
             number of elements in the underlying poset.
 
         '''
-        return len(self._elements)
+        return len(self.elements)
     
     def levels(self):
         ''' Returns the level of each element in the Hasse diagram of the 
-        underlying poset.
+        underlying poset. The level of an elemnt is the length of the longest 
+        path in the elements downset.
 
         Returns
         -------
         dict
-            keyed by elements of the underlying poset, with corresponding value 
-            being the length of a longest path in the Hasse diagram which 
-            terminates in the key.
+            levels keyed by elements.
 
         '''
-        return dag.longest_path_lengths(self._cover_relations, direction = 'incoming')
+        return dag.longest_path_lengths(self.cover_relations, direction = 'incoming')
         
     def height(self):
-        ''' Returns the height of the underlying poset.
+        ''' Returns the height of the underlying poset. 
         
         Returns
         -------
         int
-            the maximum level in the underlying poset. ** See levels().
+            the maximum level in the underlying poset. (** See levels().)
 
         '''
         return max(self.levels().values())
@@ -124,8 +127,8 @@ class UpDown(object):
 
         '''
         max_elements = []
-        for x in self._elements:
-            if self._cover_relations[x] == []:
+        for x in self.elements:
+            if self.cover_relations[x] == []:
                 max_elements.append(x)
         return max_elements
     
@@ -138,9 +141,9 @@ class UpDown(object):
             all minimal elements of the underlying poset.
 
         '''
-        reverse_covers = dag.reverse(self._cover_relations)
+        reverse_covers = dag.reverse(self.cover_relations)
         min_elements = []
-        for x in self._elements:
+        for x in self.elements:
             if reverse_covers[x] == []:
                 min_elements.append(x)
         return min_elements
@@ -158,7 +161,7 @@ class UpDown(object):
             all upper covers of 'x'.
 
         '''
-        return self._cover_relations[x]
+        return self.cover_relations[x]
     
       
     def upset(self, x):
@@ -175,7 +178,7 @@ class UpDown(object):
             equal to 'x'.
 
         '''
-        upset_x = dag.descendants(self._cover_relations, x)
+        upset_x = dag.descendants(self.cover_relations, x)
         upset_x.append(x)
         return upset_x
     
@@ -193,43 +196,39 @@ class UpDown(object):
             to 'x'.
 
         '''
-        downset_x = dag.ancestors(self._cover_relations, x)
+        downset_x = dag.ancestors(self.cover_relations, x)
         downset_x.append(x)
         return downset_x
         
 ##############################################################################
 ######################### COLORING ###########################################
-##############################################################################
-        
-    def coloring_map(self):
-        ''' Returns the coloring map on the game.
-
-        Returns
-        -------
-        dict
-            color keyed by element of the underlying poset where 1 (resp. 0,-1)
-            represents blue (resp. green, red).
-
-        '''
-        return self._coloring_map
+##############################################################################\
+    
+    def up_colored(self):
+        return list(filter(lambda x : self.coloring[x] in {0,1}, self.elements)) 
+    
+    def down_colored(self):
+        return list(filter(lambda x : self.coloring[x] in {-1,0}, self.elements)) 
+              
     
     def color_sum(self):
-        ''' Returns the sum over all colors in the game.
+        ''' Returns the sum colors over all elements.
         Returns
         -------
         int 
-            the sum over all colors in the game where 1 (resp. 0,-1) represents 
+            the sum of colors over all elements, where 1 (resp. 0,-1) represents 
             blue (resp. green, red).
 
         '''
-        return sum(self._coloring_map.values())
+        return sum(self.coloring.values())
     
     def color(self, x):
         ''' Returns the color of 'x'.
         
         Parameters
         ----------
-        x : element of underlying poset
+        x : int
+            element of underlying poset
 
         Returns
         -------
@@ -239,24 +238,12 @@ class UpDown(object):
 
         '''
         
-        return self._coloring_map[x]
+        return self.coloring[x]
     
 ##############################################################################
-######################### SUBPOSITIONS/OPTIONS ETC ###########################
+######################### OPTIONS/DISJUNCTIVE SUMMANDS #######################
 ##############################################################################
-   
-    def subpositions(self, other_arguments):
-       ''' TO BE WRITTEN... H is a subposition of G if there is a sequence of 
-       moves (not necessarily alternating) leading from G to H. I.e., subpositions
-       are subposets...
-       
-       Returns
-       -------
-       None.
-
-       '''
-       return None
-          
+           
     def up_options(self): 
         ''' Returns Ups options in the game.
         
@@ -268,12 +255,13 @@ class UpDown(object):
             
         '''
         options = {}
-        for x in self._elements:
-            if self.color(x) in {0,1}:
-                option_elements = list(set(self._elements) - set(self.upset(x)))
-                option_coloring = {y: self.color(y)  for y in option_elements}
-                option_covers = dag.subgraph(self._cover_relations, option_elements) 
-                options[x] = UpDown(option_covers, option_coloring, covers = True)
+        for x in self.up_colored():
+            option_elements = list(set(self.elements) - set(self.upset(x)))
+            option_coloring = {x: self.color(x) for x in option_elements}
+            option_covers = dag.subgraph(self.cover_relations, option_elements) 
+            option = UpDown(option_covers, option_coloring, covers = True)
+            option.coordinates = {x: self.hasse_coordinates[x] for x in option_elements}
+            options[x] = option
         return options
 
     def down_options(self): 
@@ -287,50 +275,42 @@ class UpDown(object):
             
         '''
         options = {}
-        for x in self._elements:
-            if self.color(x) in {-1,0}:
-                option_elements = list(set(self._elements) - set(self.downset(x)))
-                option_coloring = {y: self.color(y) for y in option_elements}
-                option_covers = dag.subgraph(self._cover_relations, option_elements) 
-                options[x] = UpDown(option_covers, option_coloring, covers = True)
+        for x in self.down_colored():
+            option_elements = list(set(self.elements) - set(self.downset(x)))
+            option_coloring = {x: self.color(x) for x in option_elements}
+            option_covers = dag.subgraph(self.cover_relations, option_elements) 
+            option = UpDown(option_covers, option_coloring, covers = True)
+            option.coordinates = {x: self.hasse_coordinates[x] for x in option_elements}
+            options[x] = option
         return options
-    
-    def summands(self):
-        ''' TO BE WRITTEN... 
-
-        Returns
-        -------
-        None.
-
-        '''
-        return None
-                
+              
 ##############################################################################    
 ############################### PLOTTING ######################################
 ##############################################################################
+
     
-    def gameboard(self, marker = 'o', nim=False, bipartite=False):
+    def gameboard(self, marker = 'o'):
         ''' Plots the game. I.e. the (colored) Hasse diagram of the underlying 
         poset.
         
         Parameters
         ----------
         marker : Type, optional
-            DESCRIPTION. The default is 'o'.
+            The default is 'o'.
 
         Returns
         -------
         None
 
         '''
-        uDP.UpDownPlot(self, marker=marker, nim=nim, bipartite=bipartite)
+        udp.UpDownPlot(self, marker=marker)      
         plt.show()
         return None
     
 ##############################################################################    
 ########################### GAMEPLAY #########################################
 ##############################################################################
-    def play(self, marker='o', nim=False, bipartite=False, agent_1 = None, agent_2 = None):
+    def play(self, marker='o', agent_1 = None, agent_2 = None):    
         ''' Interactively play the game.
         
         Parameters
@@ -342,10 +322,7 @@ class UpDown(object):
         -------
         None.
         '''
-        
-        if agent_1 != None or agent_2 != None:
-            import time
-            
+                    
         #close any open plots.
         plt.close()
         #make sure interactivity is off.
@@ -379,23 +356,23 @@ class UpDown(object):
         #fig_info contains various dicts that point to specific
         # objects in our figure. These are used to remove
         # these objects from the figure as the game progresses.
-        gameboard = uDP.UpDownPlot(self, marker=marker, nim=nim, bipartite=bipartite)
+        board = udp.UpDownPlot(self, marker=marker)                           
         
         #give the game a boring title
-        gameboard.figure.suptitle("Current Game")
+        board.figure.suptitle("Upset-Downset")                                 
         
         #shows the initial figure before starting the game.
         plt.pause(0.01)
         
         #The game is a while loop executes as long as the graph has nodes.
-        while self._cover_relations.keys():           
+        while self.elements:                     
             
             #Players can only choose nodes of their allowed colors.
             #Sort available choices for each player into respective lists.
-            first_options = list(filter(lambda x : self._coloring_map[x] in first_colors, \
-                  list(self._cover_relations.keys())))
-            second_options = list(filter(lambda x : self._coloring_map[x] in second_colors, \
-                  list(self._cover_relations.keys())))
+            first_options = list(filter(lambda x : self.coloring[x] in first_colors, \
+                  self.elements))            
+            second_options = list(filter(lambda x : self.coloring[x] in second_colors, \
+                  self.elements))              
             
             #If either first_options or second_options is empty
             # game will end and the player with the nonempty list will
@@ -429,7 +406,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -448,7 +425,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -471,7 +448,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -489,7 +466,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -516,7 +493,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -534,7 +511,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -558,7 +535,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -576,7 +553,7 @@ class UpDown(object):
                         
                         #remove objects from figure and fig_info which are no longer
                         # in play.
-                        gameboard.leave_subgraph_fig(sub_game)
+                        board.leave_subgraph_fig(sub_game)
                         
                         #make the current game self.
                         self = sub_game
@@ -593,11 +570,11 @@ class UpDown(object):
         if i % 2 == 0:
             print(second + " wins!")
             #change figure title to declare the winner.
-            gameboard.figure.suptitle(second + " wins!")
+            board.figure.suptitle(second + " wins!")
         else:
             print(first + " wins!")
             #change figure title to declare the winner.
-            gameboard.figure.suptitle(first + " wins!")
+            board.figure.suptitle(first + " wins!")
         
         #show figure with winner title declaration.
         plt.pause(0.01)
@@ -620,61 +597,66 @@ class UpDown(object):
             'Down', Down can force a win. (Playing first or second). 
 
         '''
-        def option_outcomes(G):
-            # Useful variables
-            ###global count
-            ###global rec_calls
-            ###rec_calls += 1
-            elems = frozenset(G.elements())
+        def option_outcomes(G, elems):
             n = len(G)
-            e = dag.number_of_edges(G.cover_relations())
+            e = dag.number_of_edges(G.cover_relations)
             color_sum = G.color_sum()
             # Possible outcomes
             N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
-            # Base cases for recursion
+            # Base cases/heuristics for recursion (either no nodes or no edges):
+            # No nodes, second player win.
             if n == 0:
                 out = P
+            # Nozero # of nodes and all are blue,  Up wins.
             elif color_sum == n:
                 out = L
+             # nozero # of nodes and all are red,  Down wins.
             elif color_sum == -n:
                 out = R
+            # nonzero # of nodes, but no edges:
             elif e == 0:
                 if color_sum == 0:
+                    # No edges, equal # of blue and red nodes, even number of 
+                    # nodes, second player win.
                     if n%2 == 0:
                         out = P
+                    # No edges, equal # of blue and red nodes, odd number of 
+                    # nodes, second player win.
                     else:
                         out = N
+                # No edges, more blue nodes than red, Up wins
                 elif color_sum > 0:
                     out = L
+                # No edges, more red nodes than blue, Down wins
                 else:
                     out = R
-            # Recursively determine the ouctome from options
+            # Using memoization, recursively visit G's options.
             else:
-                # Set of the outcomes of Ups options in G.
+                # Outcomes of Ups options in G.
                 up_ops_otcms = set()
-                # Set of the outcomes of Downs options in G.
+                # Outcomes of Downs options in G.
                 dwn_ops_otcms = set()
-                # Recursively determine the outcome of each of Ups options.
+                # Determine the outcome of each of Ups options.
                 up_ops = G.up_options()
                 for x in up_ops:
                     G_L = up_ops[x]
-                    sub_elems = frozenset(G_L.elements())
+                    sub_elems = frozenset(G_L.elements)
+                    # If we've already computed the outcome of this subposition.
                     if sub_elems in sub_outcomes:
                         up_ops_otcms.add(sub_outcomes[sub_elems])
-                        ###count += 1
+                    # We havent computed the outcome of current subposition.
                     else:
-                        up_ops_otcms.add(option_outcomes(G_L))  
+                        up_ops_otcms.add(option_outcomes(G_L, sub_elems))  
                 # Same for Downs options
                 dwn_ops = G.down_options()
                 for x in dwn_ops:
                     G_R = dwn_ops[x]
-                    sub_elems = frozenset(G_R.elements())
+                    sub_elems = frozenset(G_R.elements)
                     if sub_elems in sub_outcomes:
                         dwn_ops_otcms.add(sub_outcomes[sub_elems])
-                        ###count += 1
                     else:
-                        dwn_ops_otcms.add(option_outcomes(G_R))
-                # Determine outcome via the outcomes of the options:
+                        dwn_ops_otcms.add(option_outcomes(G_R, sub_elems))
+                # Determine outcome of G via the outcomes of the options:
                 # First player to move wins.
                 if {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms:
                     out = N
@@ -688,20 +670,20 @@ class UpDown(object):
                 # not {P, L} & up_ops_otcms and {P,R} & dwn_ops_otcms
                 else:
                     out = R
+            # Store outcome of G in sub_outcomes
             sub_outcomes[elems] = out
             return out
-        ###global rec_calls
-        ###rec_calls = 0
-        ###global count
-        ###count = 0
-        # Dict to store outcomes of subpositioins keyed by elements of 
-        # subposition (memoization).
+        # Store elements of G as hashable object for memoization. This works 
+        # since there is a unique subposition for each subset of elements.
+        elems = frozenset(self.elements)
+        # Dict to store outcomes of subpositions keyed by (hashable) elements of 
+        # subposition.
         sub_outcomes = {}
-        # Recursively determine outcome.
-        out = option_outcomes(self)
+        # Now recursively determine outcome.
+        out = option_outcomes(self, elems)
         return out
     
-    def __neg__(self):
+    def __neg__(self):                
         '''Returns the negative of the game.
     
         Returns
@@ -710,13 +692,18 @@ class UpDown(object):
             the upset-downset game on the dual poset and opposite coloring.
 
         '''
-        dual_covers = dag.reverse(self._cover_relations)
-        reverse_coloring = {x: -self._coloring_map[x] for x in self._elements}
-        return UpDown(dual_covers, reverse_coloring, covers = True)
+        dual_covers = dag.reverse(self.cover_relations)
+        reverse_coloring = {x: -self.coloring[x] for x in self.elements}
+        dual_height =self.height()
+        dual_hasse_coords = {x:(self.hasse_coordinates[x][0], dual_height - \
+                                self.hasse_coordinates[x][1]) for x in self.elements}
+        negative = UpDown(dual_covers, reverse_coloring, covers = True)
+        negative.hasse_coordinates = dual_hasse_coords
+        return negative
 
-    def __add__(self, other):
-        '''Returns the (disjunctive) sum of games. **Relabels elements to consecutive 
-        nonnegative integers starting from 0.
+    def __add__(self, other):              
+        '''Returns the (disjunctive) sum of games. **Relabels elements in 'other'
+        to consecutive nonnegative integers starting from len('self').
         
         Parameters
         ----------
@@ -728,37 +715,37 @@ class UpDown(object):
             The upset-downset game on the disjoint union of posets with 
             unchanged colorings.
             
-        Note: the sum retains all elements (relabelled), relations and coloring 
-            from both 'self' and 'other' with the added relations that all 
+        Note: the sum retains all elements ('other' being relabelled), relations 
+            and coloring from both 'self' and 'other' with the added relations that all 
             elements of 'self' and 'other' are incomparable.
 
         '''
+        # initialze  cover relations in sum and update with selfs relations
         sum_covers = {}
+        sum_covers.update(self.cover_relations)
+        # initialze coloring in sum and update with selfs relations
         sum_coloring = {}
-        # Relabelling for self.
-        self_relabel = {}
-        self_new_label = 0
-        for x in self._elements:
-            self_relabel[x] = self_new_label
-            self_new_label += 1
+        sum_coloring.update(self.coloring)
+        # initialze dict for hasse coordinates in sum and update with selfs 
+        # hasse coordinates
+        sum_hasse_coords = {}
+        sum_hasse_coords.update(self.hasse_coordinates)
         # Relabelling for other.
-        other_relabel = {}
-        other_new_label = self_new_label
-        for x in other.elements():
-            other_relabel[x] = other_new_label
-            other_new_label += 1
-        # Construct the cover relations for disjoint union
-        for x in self._elements:
-            sum_covers[self_relabel[x]] = []
-            sum_coloring[self_relabel[x]] = self._coloring_map[x]
-            for y in self._cover_relations[x]:
-                sum_covers[self_relabel[x]].append(self_relabel[y])
-        for x in other.elements():
-            sum_covers[other_relabel[x]] = []
-            sum_coloring[other_relabel[x]] = other.color(x)
-            for y in other.covers(x):
-                sum_covers[other_relabel[x]].append(other_relabel[y]) 
-        return UpDown(sum_covers, sum_coloring, covers = True)
+        n = len(self)
+        other_relabelling = dag.integer_relabel(other.cover_relations, n)
+        # update cover relations in sum with others relations
+        sum_covers.update(other_relabelling['relabelled graph'])
+        # update coloring/hasse coordinates of sum with others colors/hasse coordinates
+        other_relabel_map = other_relabelling['relabel map']
+        for x in other_relabel_map:
+            y = other_relabel_map[x]
+            sum_coloring[y] = other.coloring[x]
+            sum_hasse_coords[y] = (other.hasse_coordinates[x][0] + n, \
+                                   other.hasse_coordinates[x][1])
+        # initailze the sum and update hasse_coordinates
+        SUM = UpDown(sum_covers, sum_coloring, covers = True)
+        SUM.hasse_coordinaes = sum_hasse_coords
+        return SUM
     
     def __sub__(self, other):
         ''' Returns the difference of games.
@@ -775,7 +762,7 @@ class UpDown(object):
             'other' with the opposite coloring.
 
         '''
-        return self + (- other)
+        return self + (-other)
     
     def __eq__(self, other):
         ''' Returns wether the games are equal. ** Depends on the outcome method.
@@ -839,81 +826,81 @@ class UpDown(object):
         -------
         bool
             True if 'self' is less than 'other' (better for Down: their 
-            differnce is a win for Down)  and False otherwise.
+            differnce is a win for Down) and False otherwise.
 
         '''
         return (self - other).outcome() == 'Down'
+    
+    def disjunctive_summands(self):             #FINISH FOR GODS SAKE!!!!!!!!!!!!!!!!
+        ''' TO BE WRITTEN... 
+
+        Returns
+        -------
+        None.
+
+        '''
+        return None
 
 ###############################################################################
 ######################### NEW GAMES FROM OLD ##################################
 ##############################################################################
     
-    @staticmethod
-    def ordinal_sum(G, H):
+
+    def __truediv__(self, other):          
         ''' Returns the ordinal sum of games 'G' and 'H'. (This is not a 
-        commutative operation). **Relabels all elemnts with consecutive 
-        nonnegative integers starting from 0.
+        commutative operation). **Relabels all elements of 'self' with consecutive 
+        nonnegative integers starting from len('other')
         
         Parameters
-        ----------
-        G: UpDown
-        
-        H: UpDOwn
+        ----------      
+        other: UpDown object
 
         Returns
         -------
         UpDown
-            The ordianl sum retains all elements (relabelled), relations and
-            coloring from both 'G' and 'H' with the added relations that every
+            The ordinal sum retains all elements ('self' relabelled), relations and
+            coloring from both 'self' and 'other' with the added relations that every
             element of 'self' is greater than every element of 'other'
 
         '''
+        # initialze cover relations in ordinal sum and updates with
+        # relations in other (before adding new relations between other and self).
         ordinal_covers = {}
+        # Do not want to mutate others relations later!
+        for x in other.elements:
+            ordinal_covers[x] = []
+            for y in other.cover_relations[x]:
+                ordinal_covers[x].append(y)
+        # initialze coloring in ordinal sum and updates with other coloring.
         ordinal_coloring = {}
-        # Relabelling for other.
-        H_relabel = {}
-        H_new_label = 0
-        for x in H.elements():
-            H_relabel[x] = H_new_label
-            H_new_label += 1
+        ordinal_coloring.update(other.coloring)
+        # initialze hasse coordinates in ordinal sum and update with others
+        # coordinates. 
+        ordinal_hasse_coords = {}
+        ordinal_hasse_coords.update(other.hasse_coordinates)
         # Relabelling for self.
-        G_relabel = {}
-        G_new_label = H_new_label
-        for x in G.elements():
-            G_relabel[x] = G_new_label
-            G_new_label += 1
-        # Construct the cover relations for ordianl sum. 
-        H_maximal = H.maximal_elements()
-        G_minimal  = G.minimal_elements()
-        for x in G.elements():
-            ordinal_covers[G_relabel[x]] = []
-            ordinal_coloring[G_relabel[x]] = G.color(x)
-            for y in G.covers(x):
-                ordinal_covers[G_relabel[x]].append(G_relabel[y])
-        for x in H.elements():
-            ordinal_covers[H_relabel[x]] = []
-            ordinal_coloring[H_relabel[x]] = H.color(x)
-            for y in H.covers(x):
-                ordinal_covers[H_relabel[x]].append(H_relabel[y]) 
-            if x in H_maximal:
-                for z in G_minimal:
-                    ordinal_covers[H_relabel[x]].append(G_relabel[z])
-        return UpDown(ordinal_covers, ordinal_coloring, covers = True)
-    
-    @staticmethod
-    def fuse(G, H, x, y):
-        '''  TO BE WRITTEN.
-        
-        Parameters
-        ----------
-        other : Poset
-        x : element of poset underlying 'G'.
-        y : element of poset underlying 'H'.
-
-        Returns
-        -------
-        Poset
-
-        '''
-        return None
-    
+        n = len(other)
+        self_relabelling = dag.integer_relabel(self.cover_relations, n)
+        self_relabel_map = self_relabelling['relabel map']
+        # update cover relations in ordinal sum with selfs relations
+        ordinal_covers.update(self_relabelling['relabelled graph'])
+        # update cover relations in ordinal sum with new relations between self and other. 
+        other_maximal = other.maximal_elements()
+        self_minimal = [self_relabel_map[x] for x in self.minimal_elements()]
+        for x in other_maximal:
+            ordinal_covers[x].extend(self_minimal)
+        # update coloring of ordinal sum with selfs coloring
+        self_colors = {self_relabel_map[x]: self.coloring[x] for x in self.elements}
+        ordinal_coloring.update(self_colors)
+        # update hasse coordinatesin ordinal sum with coordinates for self
+        other_x_coords = [other.hasse_coordinates[x][0] for x in other.elements]
+        MAX = max(other_x_coords)
+        other_height = other.height()
+        self_hasse_coords = \
+            {self_relabel_map[x]: (self_relabel_map[x] - MAX, \
+                                   self.hasse_coordinates[x][1] + other_height+1) for x in self.elements}
+        ordinal_hasse_coords.update(self_hasse_coords)
+        # initialize the ordinal sum and update the hasse coordinates
+        ordinal_sum = UpDown(ordinal_covers, ordinal_coloring, covers = True)
+        ordinal_sum.hasse_coordinates = ordinal_hasse_coords
+        return ordinal_sum
