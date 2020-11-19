@@ -2,13 +2,16 @@
 
 Authors: Charles Petersen and Jamison Barsotti
 
-The game of upset-downset:
+Upset-downset is a two player game created by Tim Hsu in which the players alternate turns 
+deleting nodes from graphs whose vertices are colored blue, green or red. The Up player moves 
+by deleting a blue or green node, together with any nodes connected to it by a path moving 
+strictly upward. (All nodesabove the chosen node are removed regardless of their color.) Similarly, 
+the Down player moves by deleting a red or green node, together with any nodes connected to it 
+by a path moving strictly downward. (All nodes below the chosen node are removed regardless of 
+their color.)  Eventually one of the players will find they cannot move because there are no longer
+any nodes of their color. Whoever is first to find themselves in this predicament loses.  
 
-Let P be a finite poset with coloring c:P -> {-1,0,1} where 1 (resp. 0,-1) 
-represent blue (resp. green, red). The upset-downset game on P is the 
-partizan combinatorial game with the following possible moves: For any element x in P colored blue or green, Left (Up) may remove the upset >x of x (all elements of P which are greater than or equal to x) leaving the colored poset P - >x, and for x in P colored red or green, Right (Down) may remove the downset <x of x (all elements of P which are less than or equal to x) leaving the colored poset P - <x. The first player unable to move loses.  
-
-Goal: develop and train an AI system that learns to play upset-downset well, based on the principals of reinforcement learning.
+Goal: develop and train an machine learning system that learns to play upset-downset well, based on the principals of reinforcement learning.
     
 Contents: To be added...
 
