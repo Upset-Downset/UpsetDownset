@@ -1,82 +1,124 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct 27 16:27:38 2020
-
-@author: jamison
+@author: Charles Petersen and Jamison Barsotti
 """
+import random
 
+def random_agent(game, player):
+    ''' Returns a random move in the upset-downset 'game' for 'player'.
+    Parameters
+    ----------
+    game : UpDown
+        a game of upset-downset
+    player : str
+        'Up' if the agent is to be the Up player, and 'Down' if the agent is
+        to be the Down player.
 
+    Returns
+    -------
+    int
+        element in the poset underlying the upset-downset 'game' on which 
+        the agent is to make its random play.
 
-def random_agent(upDown, set_type):
-    
-    import random
-    
+    '''
     # Determine which colors agent chooses.
-    if set_type == 'Up':
+    if player == 'Up':
         colors = {0,1}
     else:
-        colors = {-1,0}
-    
+        colors = {-1,0}   
     # Find the list of opions for the agent
-    options = list(filter(lambda x : upDown._coloring_map[x] in colors, \
-                  list(upDown._cover_relations.keys())))
-
+    options = list(filter(lambda x : game.coloring[x] in \
+                          colors, list(game.elements)))
     # Return a random choice.    
     return random.choice(options)
 
 
-def min_agent(upDown, set_type):
+def min_agent(game, player):
+    ''' Returns a move in the upset-downset 'game' for 'player' which removes 
+    the least elements from the board.
     
+    Parameters
+    ----------
+    game : UpDown
+        a game of upset-downset
+    player : str
+        'Up' if the agent is to be the Up player, and 'Down' if the agent is
+        to be the Down player.
+
+    Returns
+    -------
+    int
+        element in the poset underlying the upset-downset 'game' on which 
+        the agent is to make its minimum play.
+
+    '''
     # Determine which colors agent chooses.
-    if set_type == 'Up':
+    if player == 'Up':
         colors = {0,1}
     else:
-        colors = {-1,0}
-    
+        colors = {-1,0}    
     # Find the list of opions for the agent
-    options = list(filter(lambda x : upDown._coloring_map[x] in colors, \
-                  list(upDown._cover_relations.keys())))
+    options = list(filter(lambda x : game.coloring[x] in \
+                          colors, list(game.elements)))
+    # pick option which removes the least elements from the board
     u = options[0]
-    if set_type == 'Up':
-        size = len(upDown.upset(u))
+    if player == 'Up':
+        size = len(game.upset(u))
         for x in options[1:]:
-            size_x = len(upDown.upset(x))
+            size_x = len(game.upset(x))
             if size > size_x:
                 u = x
                 size = size_x
     else:
-        size = len(upDown.downset(u))
+        size = len(game.downset(u))
         for x in options[1:]:
-            size_x = len(upDown.downset(x))
+            size_x = len(game.downset(x))
             if size > size_x:
                 u = x
                 size = size_x
     return u
 
-def max_agent(upDown, set_type):
+def max_agent(game, player): 
+    ''' Returns a move in the upset-downset 'game' for 'player' which removes 
+    the most elements from the board.
     
+    Parameters
+    ----------
+    game : UpDown
+        a game of upset-downset
+    player : str
+        'Up' if the agent is to be the Up player, and 'Down' if the agent is
+        to be the Down player.
+
+    Returns
+    -------
+    int
+        element in the poset underlying the upset-downset 'game' on which 
+        the agent is to make its maximum play.
+
+    '''
     # Determine which colors agent chooses.
-    if set_type == 'Up':
+    if player == 'Up':
         colors = {0,1}
     else:
-        colors = {-1,0}
-    
+        colors = {-1,0} 
     # Find the list of opions for the agent
-    options = list(filter(lambda x : upDown._coloring_map[x] in colors, \
-                  list(upDown._cover_relations.keys())))
+    options = list(filter(lambda x : game.coloring[x] in \
+                          colors, list(game.elements)))
+    # pick option which removes the most elements from the board
     u = options[0]
-    if set_type == 'Up':
-        size = len(upDown.upset(u))
+    if player == 'Up':
+        size = len(game.upset(u))
         for x in options[1:]:
-            size_x = len(upDown.upset(x))
+            size_x = len(game.upset(x))
             if size < size_x:
                 u = x
                 size = size_x
     else:
-        size = len(upDown.downset(u))
+        size = len(game.downset(u))
         for x in options[1:]:
-            size_x = len(upDown.downset(x))
+            size_x = len(game.downset(x))
             if size < size_x:
                 u = x
                 size = size_x
