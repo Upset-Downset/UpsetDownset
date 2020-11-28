@@ -7,6 +7,14 @@ Created on Thu Sep 24 10:16:36 2020
 
 Play a randomized version of UpDown through the terminal.
 """
+import os
+import sys
+mycwd = os.getcwd()
+os.chdir('..')
+prevwd = os.getcwd()
+sys.path.append(prevwd)
+os.chdir(mycwd)
+
 import matplotlib.pyplot as plt
 from randomUpDown import RandomGame
 import agents

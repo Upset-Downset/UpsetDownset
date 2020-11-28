@@ -3,8 +3,16 @@
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-import random
+import os
+import sys
+mycwd = os.getcwd()
+os.chdir('..')
+prevwd = os.getcwd()
+sys.path.append(prevwd)
+os.chdir(mycwd)
 
+
+import random
 def random_agent(game, player):
     ''' Returns a random move in the upset-downset 'game' for 'player'.
     Parameters
