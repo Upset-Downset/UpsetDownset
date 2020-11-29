@@ -19,7 +19,7 @@ import numpy as np
 
 class game_state(object):
     
-    def __init__(self, game, n=20):
+    def __init__(self, game, n = 10):
         mat = np.zeros((n, n))
         G = game.cover_relations
         colors = game.coloring
