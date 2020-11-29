@@ -29,7 +29,7 @@ class game_state(object):
                 mat[index][node] = 1
         
         for color in colors:
-            mat[color][color] = 1/3*(colors[color]+2)
+            mat[color][color] = colors[color]+2
         self.universe_size = n
         self.matrix = mat
             
