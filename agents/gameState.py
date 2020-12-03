@@ -24,10 +24,18 @@ class game_state(object):
         G = game.cover_relations
         colors = game.coloring
         
+        # add upper cover relations: 
+        # if  node i <  node j, set mat[i,j] == 1 in poset underlying the game
         for node in G:
-            for index in G[node]:
-                mat[index][node] = 1
-        
+            for cover in G[node]:
+                mat[node][cover] = 1
+                
+        # add lower cover relations:
+        # if node i > node j mat[i,j] == -1
+        t = np.transpose(mat)
+        mat = mat - t
+        # add color info:
+        # if node i has color c, set mat[i,i] == c + 2
         for color in colors:
             mat[color][color] = colors[color]+2
         self.universe_size = n
