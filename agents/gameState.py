@@ -20,7 +20,7 @@ import numpy as np
 class game_state(object):
     
     def __init__(self, game, n = 10):
-        mat = np.zeros((n, n))
+        mat = np.zeros((n, n), dtype = np.int64)
         G = game.cover_relations
         colors = game.coloring
         
@@ -28,12 +28,12 @@ class game_state(object):
         # if  node i <  node j, set mat[i,j] == 1 in poset underlying the game
         for node in G:
             for cover in G[node]:
-                mat[node][cover] = 1
+                mat[cover][node] = 1
                 
         # add lower cover relations:
         # if node i > node j mat[i,j] == -1
-        t = np.transpose(mat)
-        mat = mat - t
+        #t = np.transpose(mat)
+        #mat = mat - t
         
         # add color info:
         # if node i has color c, set mat[i,i] == c + 2
