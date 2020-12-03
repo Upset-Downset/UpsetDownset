@@ -29,8 +29,8 @@ class game_state(object):
                 
         # add lower cover relations:
         # if node i > node j mat[i,j] == -1
-        #t = np.transpose(mat)
-        #mat = mat - t
+        t = np.transpose(np.copy(mat))
+        mat = mat - t
         
         # add color info:
         # if node i has color c, set mat[i,i] == c + 2
