@@ -12,20 +12,17 @@ prevwd = os.getcwd()
 sys.path.append(prevwd)
 os.chdir(mycwd)
 
-
 import numpy as np
-
-
 
 class game_state(object):
     
-    def __init__(self, game, n = 10):
+    def __init__(self, game, n):
         mat = np.zeros((n, n), dtype = np.int64)
         G = game.cover_relations
         colors = game.coloring
         
         # add upper cover relations: 
-        # if  node i <  node j, set mat[i,j] == 1 in poset underlying the game
+        # if  node i < node j, set mat[i,j] == 1 in poset underlying the game
         for node in G:
             for cover in G[node]:
                 mat[node][cover] = 1
