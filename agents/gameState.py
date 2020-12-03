@@ -34,6 +34,7 @@ class game_state(object):
         # if node i > node j mat[i,j] == -1
         t = np.transpose(mat)
         mat = mat - t
+        
         # add color info:
         # if node i has color c, set mat[i,i] == c + 2
         for color in colors:
