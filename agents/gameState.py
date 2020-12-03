@@ -28,7 +28,7 @@ class game_state(object):
         # if  node i <  node j, set mat[i,j] == 1 in poset underlying the game
         for node in G:
             for cover in G[node]:
-                mat[cover][node] = 1
+                mat[node][cover] = 1
                 
         # add lower cover relations:
         # if node i > node j mat[i,j] == -1
