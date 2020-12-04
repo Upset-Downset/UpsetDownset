@@ -5,6 +5,11 @@
 """
 
 import copy
+import random
+
+##############################################################################
+########################### GRAPH RELABELLINGS ###############################
+##############################################################################
 
 def integer_relabel(G,k):
     ''' Relabel nodes of the directed graph 'G' as consecutive integers 
@@ -18,7 +23,6 @@ def integer_relabel(G,k):
         by node.)
     k : int
         index to start consecutive integer relabelling of nodes.
-
     Returns
     -------
     dict
@@ -42,6 +46,82 @@ def integer_relabel(G,k):
         for u in G[v]:
             graph[relabel_map[v]].append(relabel_map[u])
     return relabelled
+
+def random_relabel(G, n):
+    ''' Relabel nodes of the directed graph 'G' with (distinct) 'randomly' chosen 
+    nonnegative integers less than 'n'. Not in place.
+    
+    Parameters
+    
+    ----------
+    G : dict
+        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        by node.)
+    n : int (positive)
+        upper bound on relabelling of nodes.
+
+    Returns
+    -------
+    dict
+        of dicts:  adjacecny dict representation of a relabelled directed graph
+        'G' keyed by 'relabelled graph', and dict of the corresponding relabelling 
+        map keyed by 'relabel map'.
+            - 'graph' is an adjacecny representation of the directed graph 'G' 
+            (adjacecny lists keyed by node) under the new node labelling.
+            - 'relabelling' is a dict of new node labels ('random' nonnegative  
+            integers less than 'n') keyed by old node labels. 
+    '''
+    m = len(G)
+    graph = {}
+    labels = random.sample(range(n), m)
+    relabel_map = {}
+    relabelled = {'relabelled graph': graph, 'relabel map': relabel_map}
+    i = 0
+    for v in G:
+        relabel_map[v] = labels[i]
+        i+=1
+    for v in G:
+        graph[relabel_map[v]] = []
+        for u in G[v]:
+            graph[relabel_map[v]].append(relabel_map[u])      
+    return relabelled
+
+def label_shift(G,k):
+    ''' Relabel nodes of the directed graph 'G' by shifting the current 
+    (integer) labels by the positive integer 'k'. Not in place.
+    
+    Parameters
+    
+    ----------
+    G : dict
+        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        by node.) Assumes node are labelled by integers.
+    k : int (positive)
+        shift for relabelling of nodes.
+
+    Returns
+    -------
+    dict
+        of dicts:  adjacecny dict representation of a relabelled directed graph
+        'G' keyed by 'relabelled graph', and dict of the corresponding relabelling 
+        map keyed by 'relabel map'.
+            - 'graph' is an adjacecny representation of the directed graph 'G' 
+            (adjacecny lists keyed by node) under the new node labelling.
+            - 'relabelling' is a dict of new node labels (current labels of 'G'
+            shifted by 'k') keyed by old node labels. 
+    '''
+    graph = {}
+    relabel_map = {i : i+k for i in G}
+    relabelled = {'relabelled graph': graph, 'relabel map': relabel_map}
+    for i in G:
+        graph[relabel_map[i]] = []
+        for j in G[i]:
+            graph[relabel_map[i]].append(relabel_map[j])
+    return relabelled
+
+##############################################################################
+########################### NEW GRAPHS FROM OLD ##############################
+##############################################################################
         
 def subgraph(G, nodes):
     ''' Returns the subgraph of the directed graph 'G' on 'nodes'.
@@ -88,6 +168,10 @@ def reverse(G):
         for u in G[v]:
             reverse[u].append(v)
     return reverse
+
+##############################################################################
+########################### GRAPH FEATURES ###################################
+##############################################################################
 
 def edge_list(G):
     '''Returns list of edges of the directed graph 'G'.
@@ -196,7 +280,7 @@ def descendants(G, source):
         for u in G[v]:
             if visited[u] == -1:
                 dfs_visit(G,u)
-    #############################################c#############################
+    ##########################################################################
     reachable_from_source = []
     # Keep track of nodes already visited by marking with 0 if already visited
     # and -1 otherwise.
@@ -225,6 +309,10 @@ def ancestors(G, source):
     rev = reverse(G)
     has_path_to_source = descendants(rev, source)
     return has_path_to_source
+
+##############################################################################
+########################### COMMON GRAPH ALGORITHMS ##########################
+##############################################################################
 
 def is_acyclic(G):
     ''' Returns true if the directed graph G is acyclic and false otherwise.
@@ -365,7 +453,8 @@ def transitive_reduction(G):
         - https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/dag.html
         - https://en.wikipedia.org/wiki/Transitive_reduction
         
-    *** This is basically the exact algorithm found in networkx's dag source code!
+    *** All credit to the authors of the algorithm found in networkx's dag 
+        code!
     '''                 
     transitive_reduction = {}
     # Store descendants of each node in G in a dict as they are needed so we 

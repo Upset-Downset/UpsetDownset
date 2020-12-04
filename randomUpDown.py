@@ -45,9 +45,9 @@ def random_poset_relations(n):
     random_covers = dag.transitive_reduction(random_relations)
     # determine number of components in Hasse diagram.
     components = dag.connected_components(random_relations)
-    # If more than one component relabel elements so that each compnenet is 
+    # If more than one component relabel elements so that each component is 
     # labelled consecutively.
-    if len(components) >1:
+    if len(components) > 1:
         random_covers_relabelled = {}
         relabel_index = 0
         for c in components:
