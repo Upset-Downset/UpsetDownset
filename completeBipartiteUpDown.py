@@ -13,14 +13,14 @@ def bipartite_relations(graphs):
     Parameters
     ----------
     graphs : list
-        ordered pairs (tuples or lists) of non-negative integers (m,n) each 
+        ordered pairs (tuples or lists) of non-negative integers ('m','n') each 
         representinting a distinct (horizontally-oriented) complete bipartite 
-        having m nodes on top and n nodes on bottom.
+        graph having 'm' nodes on top and 'n' nodes on bottom.
     Returns
     -------
     dict
-        xy-coordinates (tuple) of element in the Hasse diagram of the poset 
-        keyed by elements.
+        xy-coordinates (tuple) of nodes in the Hasse diagram of the poset 
+        keyed by corresponding elements.
 
     '''
     cover_relations = {}
@@ -52,15 +52,15 @@ def bipartite_coordinates(graphs):
     Parameters
     ----------
     graphs : list
-        ordered pairs (tuples or lists) of non-negative integers (m,n) each 
+        ordered pairs (tuples or lists) of non-negative integers ('m','n') each 
         representinting a distinct (horizontally-oriented) complete bipartite 
-        having m nodes on top and n nodes on bottom.
+        having 'm' nodes on top and 'n' nodes on bottom.
     Returns
     -------
     dict
-        keyed by elements of the poset (consecutive nonnegative integers 
-        starting at 0) with corresponding value being the (tuple)
-        xy-coordinate of that element in the Hasse diagram of the poset.
+        keyed by elements of the poset (nonnegative integers) with 
+        corresponding value being the xy-coordinate (tuple) of the
+        corresponding node in the Hasse diagram.
 
     '''
     coordinates = {}
@@ -132,10 +132,7 @@ class KGame(ud.UpDown):
         None
 
         '''
-        n = 0
-        for graph in graphs:
-            n += graph[0] + graph[1]
-        coloring = {i:0 for i in range(n)}
+        coloring = None
         covers = bipartite_relations(graphs)
         coordinates = bipartite_coordinates(graphs)
         ud.UpDown.__init__(self, covers, coloring, coordinates = coordinates,\
