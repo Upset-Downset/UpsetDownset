@@ -18,6 +18,11 @@ class UpDown(object):
         '''
         Parameters
         ----------
+        ** The underlying poset is identified with its Hasse diagram 
+            (a transitively reduced directed acyclic graph, DAG) as usual:
+                    nodes of DAG <----> elements of poset 
+                    reachability in DAG <----> relation in poset 
+                    (b reahcbale from a in dag <----> a<=b in poset)
         relations : dict
             each key is an element in the underlying poset w/ corresponding 
             value being a list of elements greater than the key. The 
@@ -29,16 +34,11 @@ class UpDown(object):
             - At a minimum all cover relations must be present to obtain 
             the intended poset.
             - Reflexivity is assumed. Do not provide the reflexive relations.
-            (Refleive relations will give loops in the corresponding DAG**.)
+            (Reflexive relations = loops in the corresponding DAG.)
             - Anti-symmetry is checked via acylicity of the corresponding DAG
             - Transitivity is forced via reachability in the corresponding DAG.
             (In particular, the poset returned is the transitive closure of 
-            the provided 'relations'.)
-            ** The underlying poset is identified with its Hasse diagram 
-            (transitively reduced directed acyclic graph, DAG) as usual:
-                    nodes of DAG <----> elements of poset 
-                    reachability in DAG <----> relation in poset 
-                    (b reahcbale from a in dag <----> a<=b in poset) 
+            the provided 'relations'.) 
         coloring: dict, optional
             coloring map on elements in underlying poset. color keyed by element
             where 1 (resp. 0, -1) represents blue (resp. green, red). Default in None,
@@ -56,7 +56,7 @@ class UpDown(object):
             relations on the underlying poset.( Note that in this case 
             acyclicity is assumed.) The default is False.
         '''
-        # Set relations: if not given exactly the covering relations take 
+        # Set relations: if not given covering relations, take 
         # the transitive reduction.
         if covers is False:# Check for cycles in Hasse diagram
             assert dag.is_acyclic(relations), \
@@ -66,12 +66,13 @@ class UpDown(object):
             self.cover_relations = relations
         # List of elements in poset
         self.elements = list(self.cover_relations)
-        # Set the coloring, if none given color all elements green
+        # Set the coloring: if none given, color all elements green
         if coloring is None:
             self.coloring = {x:0 for x in self.elements}
         else:
             self.coloring = coloring
-        # Set the coordinates of the elements in the Hasse diagram. 
+        # Set the coordinates of the nodes in the Hasse diagram: if none given
+        # use the default.
         if coordinates is None:
             self.hasse_coordinates = {x:(x, self.levels()[x]) for x in \
                                       self.elements}
@@ -586,7 +587,7 @@ class UpDown(object):
     
     def outcome(self):
         ''' Returns the outcome of the game. **Due to the huge number of 
-        suboptions, for all but the smallest games this algotithm is extremely 
+        suboptions, for all but the smallest games this algorithm is extremely 
         slow.
         
         Returns
