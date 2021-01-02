@@ -7,13 +7,8 @@
 import copy
 import random
 
-##############################################################################
-########################### GRAPH RELABELLINGS ###############################
-##############################################################################
-
-def integer_relabel(G,k):
-    ''' Relabel nodes of the directed graph 'G' as consecutive integers 
-    staring from 'k'.
+def relabel(G, relabel_map):
+    ''' Relabel nodes of the directed graph 'G' according to 'relabel_map'. 
     
     Parameters
     
@@ -21,108 +16,20 @@ def integer_relabel(G,k):
     G : dict
         adjacecny representation of a directed graph. (Adjacecny lists keyed 
         by node.)
-    k : int
-        index to start consecutive integer relabelling of nodes.
+    relabel_map : dict
+        new node labels keyed by old node labels. 
     Returns
     -------
-    dict
-        of dicts:  adjacecny dict representation of a relabelled directed graph
-        'G' keyed by 'relabelled graph', and dict of the corresponding relabelling 
-        map keyed by 'relabel map'.
-            - 'graph' is an adjacecny representation of the directed graph 'G' 
-            (adjacecny lists keyed by node) under the new node labelling.
-            - 'relabelling' is a dict of new node labels (consecutive integers 
-            starting from 'k') keyed by old node labels. 
+    graph: dict
+        adjacecny representation of the directed graph 'G' with nodes relabelled by 'relabel_map'.
     '''
     graph = {}
-    relabel_map = {}
-    relabelled = {'relabelled graph': graph, 'relabel map': relabel_map}
-    label = k
-    for v in G:
-        relabel_map[v] = label
-        label += 1
     for v in G:
         graph[relabel_map[v]] = []
         for u in G[v]:
             graph[relabel_map[v]].append(relabel_map[u])
-    return relabelled
-
-def random_relabel(G, n):
-    ''' Relabel nodes of the directed graph 'G' with (distinct) 'randomly' chosen 
-    nonnegative integers less than 'n'. Not in place.
-    
-    Parameters
-    
-    ----------
-    G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
-        by node.)
-    n : int (positive)
-        upper bound on relabelling of nodes.
-
-    Returns
-    -------
-    dict
-        of dicts:  adjacecny dict representation of a relabelled directed graph
-        'G' keyed by 'relabelled graph', and dict of the corresponding relabelling 
-        map keyed by 'relabel map'.
-            - 'graph' is an adjacecny representation of the directed graph 'G' 
-            (adjacecny lists keyed by node) under the new node labelling.
-            - 'relabelling' is a dict of new node labels ('random' nonnegative  
-            integers less than 'n') keyed by old node labels. 
-    '''
-    m = len(G)
-    graph = {}
-    labels = random.sample(range(n), m)
-    relabel_map = {}
-    relabelled = {'relabelled graph': graph, 'relabel map': relabel_map}
-    i = 0
-    for v in G:
-        relabel_map[v] = labels[i]
-        i+=1
-    for v in G:
-        graph[relabel_map[v]] = []
-        for u in G[v]:
-            graph[relabel_map[v]].append(relabel_map[u])      
-    return relabelled
-
-def label_shift(G,k):
-    ''' Relabel nodes of the directed graph 'G' by shifting the current 
-    (integer) labels by the positive integer 'k'. Not in place.
-    
-    Parameters
-    
-    ----------
-    G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
-        by node.) Assumes node are labelled by integers.
-    k : int (positive)
-        shift for relabelling of nodes.
-
-    Returns
-    -------
-    dict
-        of dicts:  adjacecny dict representation of a relabelled directed graph
-        'G' keyed by 'relabelled graph', and dict of the corresponding relabelling 
-        map keyed by 'relabel map'.
-            - 'graph' is an adjacecny representation of the directed graph 'G' 
-            (adjacecny lists keyed by node) under the new node labelling.
-            - 'relabelling' is a dict of new node labels (current labels of 'G'
-            shifted by 'k') keyed by old node labels. 
-    '''
-    graph = {}
-    relabel_map = {i : i+k for i in G}
-    relabelled = {'relabelled graph': graph, 'relabel map': relabel_map}
-    for i in G:
-        graph[relabel_map[i]] = []
-        for j in G[i]:
-            graph[relabel_map[i]].append(relabel_map[j])
-    return relabelled
-
-##############################################################################
-########################### NEW GRAPHS FROM OLD ##############################
-##############################################################################
-        
+    return graph
+ 
 def subgraph(G, nodes):
     ''' Returns the subgraph of the directed graph 'G' on 'nodes'.
     Parameters
@@ -169,10 +76,6 @@ def reverse(G):
             reverse[u].append(v)
     return reverse
 
-##############################################################################
-########################### GRAPH FEATURES ###################################
-##############################################################################
-
 def edge_list(G):
     '''Returns list of edges of the directed graph 'G'.
     
@@ -213,45 +116,6 @@ def number_of_edges(G):
 
     '''
     return sum(len(G[v]) for v in G)
-
-def in_degree(G, v):
-    ''' Returns the numbner of incoming edges of the node 'v' in the directed 
-    graph 'G'.
-    
-    Parameters
-    ----------
-    G : dict 
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
-        by node.)
-    v : node of 'G'
-
-    Returns
-    -------
-    Int
-        the numbner of incoming edges of 'v' in 'G'.
-
-    '''
-    return len(G[v])
-
-def out_degree(G, v):
-    ''' Returns the numbner of outgoing edges of the node 'v' in the directed 
-    graph 'G'.
-    
-    Parameters
-    ----------
-    G : dict 
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
-        by node.)
-    v : node of 'G'
-
-    Returns
-    -------
-    Int
-        the numbner of outgoing edges of 'v' in 'G'.
-
-    '''
-    rev = reverse(G)
-    return len(rev[v])
 
 def descendants(G, source):
     ''' Returns all nodes reachable from 'source' in the directed graph 'G'.
@@ -309,10 +173,6 @@ def ancestors(G, source):
     rev = reverse(G)
     has_path_to_source = descendants(rev, source)
     return has_path_to_source
-
-##############################################################################
-########################### COMMON GRAPH ALGORITHMS ##########################
-##############################################################################
 
 def is_acyclic(G):
     ''' Returns true if the directed graph G is acyclic and false otherwise.

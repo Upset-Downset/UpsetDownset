@@ -23,7 +23,7 @@ def random_poset_relations(n):
 
     '''
     random_relations = {i:[] for i in range(n)}
-    # Randomy choose the number of relations to include. (Between 0 and 
+    # Randomy choose the number of edges to include. (Between 0 and 
     # n(n-1)/2 since this is the maximum number of edges possible in a dag 
     # having n nodes.)
     r = random.randint(0, n*(n-1)/2)
@@ -36,31 +36,17 @@ def random_poset_relations(n):
             j = random.randint(0, n-1)
         # Add relation i<j.
         random_relations[i].append(j)
-        # Check for acycles in Hasse diagram
+        # Check for cycles
         if dag.is_acyclic(random_relations):
             r -= 1
         else:
             random_relations[i].pop()
     # Reduce to cover relations.
     random_covers = dag.transitive_reduction(random_relations)
-    # determine number of components in Hasse diagram.
-    components = dag.connected_components(random_relations)
-    # If more than one component relabel elements so that each component is 
-    # labelled consecutively.
-    if len(components) > 1:
-        random_covers_relabelled = {}
-        relabel_index = 0
-        for c in components:
-            c_adj = dict(filter(lambda i: i[0] in c, random_covers.items()))
-            c_adj_relabel = dag.integer_relabel(c_adj, relabel_index)['relabelled graph']
-            relabel_index += len(c)
-            random_covers_relabelled.update(c_adj_relabel)
-        return random_covers_relabelled
-    else: 
-        return random_covers
+    return random_covers
 
 class RandomGame(ud.UpDown):
-    ''' Subclass of Updaown for randomly generated games of upset-downset.
+    ''' Subclass of Updown for randomly generated games of upset-downset.
     '''
     def __init__(self, n, colored = False):
         ''' Initializes a game of upset-downset on a randomly generated poset 

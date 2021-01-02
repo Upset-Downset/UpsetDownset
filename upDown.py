@@ -47,41 +47,51 @@ class UpDown(object):
             coordinates of vertices in Hasse diagram of unerlying poset (the 'gameboard')
             keyed by corresponding poset elements: tuples should be of the 
             following form: (horizontal coordinate, vertical coordinate). The 
-            default is 'None'. In this case horizontal coordinates are determined 
-            by the label of the element and the vertical coordinate is determined by 
-            the level of the element. (See the levels() method.) ***It is not 
-            recommended to alter the vertical coordinate expect by scaling.       
+            default is 'None'. In this case horizontal coordinates are grouped
+            by the connnected components of the graph, this helps minimize edge 
+            crossings, and the vertical coordinates are determined by the level
+            set decomposition of the underlying poset (See the levels() method.) 
+            ***It is not recommended to alter the vertical coordinate except 
+            by scaling.       
         covers : bool, optional
             set to 'True' if the given 'relations' are the (upper) covering 
             relations on the underlying poset.( Note that in this case 
             acyclicity is assumed.) The default is False.
         '''
-        # Set relations: if not given covering relations, take 
-        # the transitive reduction.
-        if covers is False:# Check for cycles in Hasse diagram
+        # Set relations: if covers == False,
+        # check for cycles and take the transitive reduction  
+        if covers is False:
             assert dag.is_acyclic(relations), \
                 'Check the relations. There is a cycle present.'
             self.cover_relations = dag.transitive_reduction(relations)
         else:
             self.cover_relations = relations
-        # List of elements in poset
+        # List elements in poset
         self.elements = list(self.cover_relations)
-        # Set the coloring: if none given, color all elements green
+        # Set the coloring: if None given, color all elements green
         if coloring is None:
             self.coloring = {x:0 for x in self.elements}
         else:
             self.coloring = coloring
-        # Set the coordinates of the nodes in the Hasse diagram: if none given
-        # use the default.
+        # Set the coordinates of the nodes in the Hasse diagram: if 
+        #  == None, use the default.
         if coordinates is None:
-            self.hasse_coordinates = {x:(x, self.levels()[x]) for x in \
-                                      self.elements}
+            self.hasse_coordinates = {}
+            levels = self.levels()
+            # determine the connected components in Hasse diagram.
+            components = dag.connected_components(self.cover_relations)
+            index = 0
+            for c in components:
+                x_coords = range(index, index+len(c)+1)
+                self.hasse_coordinates.update({v:(x,levels[v]) for v, x in \
+                                               zip(c,x_coords)})
+                index += len(c)
         else:
             self.hasse_coordinates = coordinates
         
 ##############################################################################
 ######################### POSET ##############################################
-##############################################################################
+#############################################################################
     
     def __len__(self):
         ''' Returns the cardinality of the underlying poset. Overloads the 'len'
@@ -211,8 +221,7 @@ class UpDown(object):
     
     def down_colored(self):
         return list(filter(lambda x : self.coloring[x] in {-1,0}, self.elements)) 
-              
-    
+               
     def color_sum(self):
         ''' Returns the sum colors over all elements.
         Returns
@@ -243,7 +252,7 @@ class UpDown(object):
         return self.coloring[x]
     
 ##############################################################################
-######################### OPTIONS/DISJUNCTIVE SUMMANDS #######################
+################################## OPTIONS ###################################
 ##############################################################################
            
     def up_options(self): 
@@ -735,14 +744,15 @@ class UpDown(object):
         sum_hasse_coords.update(self.hasse_coordinates)
         # Relabelling for other.
         n = len(self)
-        other_relabelling = dag.label_shift(other.cover_relations, n)
+        # create relabelling dict for other, and relabel
+        relabel_map = {i : i+n for i in other.elements}
+        other_relabel = dag.relabel(other.cover_relations, relabel_map)
         # update cover relations in sum with others relations
-        sum_covers.update(other_relabelling['relabelled graph'])
+        sum_covers.update(other_relabel)
         # update coloring/hasse coordinates of sum with others colors/hasse
         # coordinates
-        other_relabel_map = other_relabelling['relabel map']
-        for x in other_relabel_map:
-            y = other_relabel_map[x]
+        for x in relabel_map:
+            y = relabel_map[x]
             sum_coloring[y] = other.coloring[x]
             sum_hasse_coords[y] = (other.hasse_coordinates[x][0] + n, \
                                    other.hasse_coordinates[x][1])
@@ -853,7 +863,7 @@ class UpDown(object):
         Returns
         -------
         UpDown
-            The ordinal sum retains all elements ('self' relabelled), relations
+            The ordinal sum retains all elements (relabelled), relations
             and coloring from both 'self' and 'other' with the added relations 
             that every element of 'self' is greater than every element of 
             'other'.
@@ -876,18 +886,18 @@ class UpDown(object):
         ordinal_hasse_coords.update(other.hasse_coordinates)
         # Relabelling for self.
         n = len(other)
-        self_relabelling = dag.label_shift(self.cover_relations, n)
-        self_relabel_map = self_relabelling['relabel map']
+        relabel_map = {i : i+n for i in self.elements}
+        self_relabel = dag.relabel(self.cover_relations, relabel_map)
         # update cover relations in ordinal sum with selfs relations
-        ordinal_covers.update(self_relabelling['relabelled graph'])
+        ordinal_covers.update(self_relabel)
         # update cover relations in ordinal sum with new relations between self 
         # and other. 
         other_maximal = other.maximal_elements()
-        self_minimal = [self_relabel_map[x] for x in self.minimal_elements()]
+        self_minimal = [relabel_map[x] for x in self.minimal_elements()]
         for x in other_maximal:
             ordinal_covers[x].extend(self_minimal)
         # update coloring of ordinal sum with selfs coloring
-        self_colors = {self_relabel_map[x]: self.coloring[x] for x in \
+        self_colors = {relabel_map[x]: self.coloring[x] for x in \
                        self.elements}
         ordinal_coloring.update(self_colors)
         # update hasse coordinatesin ordinal sum with coordinates for self
@@ -895,7 +905,7 @@ class UpDown(object):
         MAX = max(other_x_coords)
         other_height = other.height()
         self_hasse_coords = \
-            {self_relabel_map[x]: (self_relabel_map[x] - MAX, \
+            {relabel_map[x]: (self.hasse_coordinates[x][0] - MAX, \
                                    self.hasse_coordinates[x][1] + \
                                        other_height+1) for x in self.elements}
         ordinal_hasse_coords.update(self_hasse_coords)
