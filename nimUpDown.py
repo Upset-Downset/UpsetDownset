@@ -7,7 +7,7 @@
 import upDown as ud
 
 def integer_to_binary(n):
-    ''' Returns the binary representation of af the integr 'n'.
+    ''' Returns the binary representation of the integer 'n'.
     Parameters
     ----------
     n : int
