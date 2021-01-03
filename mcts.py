@@ -45,7 +45,7 @@ class MCTNode(object):
             self.edges[a] = MCTNode(next_state, a, parent=self)
         return self.edges[a]
     
-    def PUCT_action(self, c_puct = 1.0, eps = 0.25, eta = 0.03):
+    def get_action(self, c_puct = 1.0, eps = 0.25, eta = 0.03):
         probs = copy.deepcopy(self.prior_probs)
         # if self is root node add dirichlet noise
         if self.parent == None:
@@ -61,15 +61,15 @@ class MCTNode(object):
         invalid_actions = list(set(range(gs.UNIV)) - set(self.valid_actions))
         PUCT[invalid_actions] = -np.Inf
         # get the action recommended by PUCT algorithm
-        PUCTaction = int(np.argmax(PUCT))
-        return PUCTaction
+        puct_action = int(np.argmax(PUCT))
+        return puct_action
     
     def find_leaf(self):
         # start at current node, i.e. root
         current = self
         # select leaf, taking PUCT recommended action as we go
         while current.is_expanded:
-            next_action = current.PUCT_action()
+            next_action = current.get_action()
             current = current.add_edge(next_action)
         return current
     
@@ -126,12 +126,12 @@ def MCTS(state, num_iters, net):
             leaf.backup(value)
         # no winner yet
         else:
-            ### TO TEST SINCE WE DONT HAVE A NET ###
+            ### WE DONT HAVE A NET YET ###
             #encoded_leaf_state = torch.from_numpy(leaf.state).float()
             #probs, value = net(encoded_leaf_state)
             #probs = probs.detach().cpu().numpy().reshape(-1)
             #value = value.item()
-            #### TO TEST SINCE WE DONT HAVE A NET ###
+            #### WE DONT HAVE A NET YET ###
             probs = np.random.dirichlet([1.0]*gs.UNIV)
             value = random.choice([-1,1])
             actions = gs.valid_actions(leaf.state)
@@ -142,5 +142,8 @@ def MCTS(state, num_iters, net):
 def MCTS_policy(root, temp=1):
     return ((root.number_visits)**(1/temp))/np.sum(root.number_visits**(1/temp))
 
-def MCTS_self_play():
+def self_play():
+    pass
+
+def eval_play():
     pass
