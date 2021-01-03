@@ -45,7 +45,7 @@ class MCTNode(object):
             self.edges[a] = MCTNode(next_state, a, parent=self)
         return self.edges[a]
     
-    def get_action(self, c_puct = 1.0, eps = 0.25, eta = 0.03):
+    def PUCT_action(self, c_puct = 1.0, eps = 0.25, eta = 0.03):
         probs = copy.deepcopy(self.prior_probs)
         # if self is root node add dirichlet noise
         if self.parent == None:
@@ -69,7 +69,7 @@ class MCTNode(object):
         current = self
         # select leaf, taking PUCT recommended action as we go
         while current.is_expanded:
-            next_action = current.get_action()
+            next_action = current.PUCT_action()
             current = current.add_edge(next_action)
         return current
     
