@@ -270,8 +270,8 @@ class UpDown(object):
             option_elements = list(set(self.elements) - set(self.upset(x)))
             option_coloring = {x: self.color(x) for x in option_elements}
             option_covers = dag.subgraph(self.cover_relations, option_elements) 
-            option = UpDown(option_covers, option_coloring, covers = True)
-            option.coordinates = {x: self.hasse_coordinates[x] for x in option_elements}
+            option_coordinates = {x: self.hasse_coordinates[x] for x in option_elements}
+            option = UpDown(option_covers, option_coloring, option_coordinates, covers = True)
             options[x] = option
         return options
 
@@ -289,9 +289,9 @@ class UpDown(object):
         for x in self.down_colored():
             option_elements = list(set(self.elements) - set(self.downset(x)))
             option_coloring = {x: self.color(x) for x in option_elements}
-            option_covers = dag.subgraph(self.cover_relations, option_elements) 
-            option = UpDown(option_covers, option_coloring, covers = True)
-            option.coordinates = {x: self.hasse_coordinates[x] for x in option_elements}
+            option_covers = dag.subgraph(self.cover_relations, option_elements)
+            option_coordinates = {x: self.hasse_coordinates[x] for x in option_elements}
+            option = UpDown(option_covers, option_coloring, option_coordinates, covers = True)
             options[x] = option
         return options
               
