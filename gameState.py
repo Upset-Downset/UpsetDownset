@@ -30,32 +30,27 @@ def game_to_state(G, dim = UNIV, first_move = UP):
   # Check to make sure the game G fits in the universe.
   assert len(G) <= dim
 
+  #Create a state matrix.
+  #If the first play is down, get the dual game
   state = np.zeros((4, dim, dim), dtype=np.int8)
   if first_move == DOWN:
       state[3,:,:] = 1
       G = -G
+  
   cr = G.cover_relations
   tc = dag.transitive_closure(cr)
   color_dict = G.coloring
 
+  #Get a node and place a 1 on the diagonal of the face corresponding to its color in state
   for node in tc:
     color = color_dict[node]
-
-    if color == 1:
-      state[0, node,node] = 1
-    elif color == 0:
-      state[1, node, node] = 1
-    else:
-      state[2, node, node] = 1
+    state[1 - color, node, node] = 1
     
+    #Now place node's upset (covers) in the state
+    #Each cover gets a 1 placed on the face of its color, in row node and column cover. 
     for cover in tc[node]:
       color = color_dict[cover]
-      if color == 1:
-        state[0,node, cover] = 1
-      elif color == 0:
-        state[1, node, cover] = 1
-      else:
-        state[2, node, cover] = 1
+      state[1 - color, node, cover] = 1
 
   return state
 
@@ -67,34 +62,36 @@ def valid_actions(state):
     
     return np.nonzero(d)[0]
 
+####
+####
+#####take_action_prev CAN PROBABLY BE DELETED BUT I DIDNT WANT TO PULL THE TRIGGER FOR SOME REASON###
+# def take_action_prev(state, a):
+#     '''Call this method once an action a is chosen to remove the upset of a and 
+#     change the perspective of the game to the next player'''
+#     assert a in valid_actions(state)
+#     next_state = copy.deepcopy(state)
+#     cur_player = next_state[3,0,0]
+    
+#     #the (i,j) entry of rows tells us to zero out the jth column in the ith matrix 
+#     #of next_state 
+#     rows = next_state[[0,1,2],[a],:]
+    
+#     # zero out the jth column in the ith matrix of next_state 
+#     for row in np.argwhere(rows):
+#       next_state[[row[0]],:,[row[1]]] = 0
+    
+#     #changes next_state to next players perspective. Takes the tensor next_state:
+#     #transposes the dimensions 1 and 2, swaps
+#     #the 0th and 2nd matrices, and changes the last matrix from zeros to ones 
+#     #or ones to zeros'''
+    
+#     next_state = np.transpose(next_state, [0,2,1])
+#     next_state[[0,2]] = next_state[[2,0]]  
+#     next_state[3,:,:] = 1-cur_player
+    
+#     return next_state
 
-def take_action(state, a):
-    '''Call this method once an action a is chosen to remove the upset of a and 
-    change the perspective of the game to the next player'''
-    assert a in valid_actions(state)
-    next_state = copy.deepcopy(state)
-    cur_player = next_state[3,0,0]
-    
-    #the (i,j) entry of rows tells us to zero out the jth column in the ith matrix 
-    #of next_state 
-    rows = next_state[[0,1,2],[a],:]
-    
-    # zero out the jth column in the ith matrix of next_state 
-    for row in np.argwhere(rows):
-      next_state[[row[0]],:,[row[1]]] = 0
-    
-    #changes next_state to next players perspective. Takes the tensor next_state:
-    #transposes the dimensions 1 and 2, swaps
-    #the 0th and 2nd matrices, and changes the last matrix from zeros to ones 
-    #or ones to zeros'''
-    
-    next_state = np.transpose(next_state, [0,2,1])
-    next_state[[0,2]] = next_state[[2,0]]  
-    next_state[3,:,:] = 1-cur_player
-    
-    return next_state
-
-def previous_player_won(state):
+def terminal_state(state):
     ''' Returns True if current player has lost the game. (Check before current
      player takes action!)
     '''
@@ -104,7 +101,7 @@ def previous_player_won(state):
       return False
   
      
-def take_action_updated(state, a):
+def take_action(state, a):
     '''Call this method once an action a is chosen to remove the upset of a and 
     change the perspectivnp.diagonal(state[i]) for i in range(state.shape[0])e of the game to the next player'''
     assert a in valid_actions(state)

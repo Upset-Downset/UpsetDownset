@@ -104,7 +104,7 @@ def MCTS(state, net, num_iters = 400):
     for _ in range(num_iters):
         leaf = root.find_leaf()
         # if leaf is a terminal state, i.e. previous player won
-        if gs.previous_player_won(leaf.state) == True:
+        if gs.terminal_state(leaf.state) == True:
             # the value should be from the current players perspective
             value = -1
             leaf.backup(value)
