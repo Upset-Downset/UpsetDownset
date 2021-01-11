@@ -15,7 +15,7 @@ UNIV = 10
 UP = 0
 DOWN = 1
 
-def game_to_state(G, dim = UNIV, first_move = UP):
+def to_state(G, dim = UNIV, first_move = UP):
   '''Take a game and spit out the encoded tensor. The tensor representation of the game 
   state is  represented by four UNIV x UNIV arrays:
   - the ij-th entry of the 0-th array is a 1 if node i >= node j and node j is 
@@ -54,53 +54,6 @@ def game_to_state(G, dim = UNIV, first_move = UP):
 
   return state
 
-def valid_actions(state):
-    '''A method returning (as a tensor) the valid actions for the current player.'''
-    
-    #Get the diagonals of the first and second matrices and sum their columns
-    d = np.sum(np.diagonal(state[[0,1]], 0,2),0)
-    
-    return np.nonzero(d)[0]
-
-####
-####
-#####take_action_prev CAN PROBABLY BE DELETED BUT I DIDNT WANT TO PULL THE TRIGGER FOR SOME REASON###
-# def take_action_prev(state, a):
-#     '''Call this method once an action a is chosen to remove the upset of a and 
-#     change the perspective of the game to the next player'''
-#     assert a in valid_actions(state)
-#     next_state = copy.deepcopy(state)
-#     cur_player = next_state[3,0,0]
-    
-#     #the (i,j) entry of rows tells us to zero out the jth column in the ith matrix 
-#     #of next_state 
-#     rows = next_state[[0,1,2],[a],:]
-    
-#     # zero out the jth column in the ith matrix of next_state 
-#     for row in np.argwhere(rows):
-#       next_state[[row[0]],:,[row[1]]] = 0
-    
-#     #changes next_state to next players perspective. Takes the tensor next_state:
-#     #transposes the dimensions 1 and 2, swaps
-#     #the 0th and 2nd matrices, and changes the last matrix from zeros to ones 
-#     #or ones to zeros'''
-    
-#     next_state = np.transpose(next_state, [0,2,1])
-#     next_state[[0,2]] = next_state[[2,0]]  
-#     next_state[3,:,:] = 1-cur_player
-    
-#     return next_state
-
-def terminal_state(state):
-    ''' Returns True if current player has lost the game. (Check before current
-     player takes action!)
-    '''
-    if len(valid_actions(state)) == 0:
-      return True
-    else:
-      return False
-  
-     
 def take_action(state, a):
     '''Call this method once an action a is chosen to remove the upset of a and 
     change the perspectivnp.diagonal(state[i]) for i in range(state.shape[0])e of the game to the next player'''
@@ -137,3 +90,22 @@ def take_action(state, a):
         # set the downset of node in 'next_state'
         next_state[[color],:,[node]] = col
     return next_state
+
+def valid_actions(state):
+    '''A method returning (as a tensor) the valid actions for the current player.'''
+    
+    #Get the diagonals of the first and second matrices and sum their columns
+    d = np.sum(np.diagonal(state[[0,1]], 0,2),0)
+    
+    return np.nonzero(d)[0]
+
+def is_terminal_state(state):
+    ''' Returns True if current player has lost the game. (Check before current
+     player takes action!)
+    '''
+    if len(valid_actions(state)) == 0:
+      return True
+    else:
+      return False
+  
+     
