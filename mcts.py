@@ -39,7 +39,7 @@ class PUCTNode(object):
         # add edge/node if not already there
         if a not in self.edges:
             # take action a in self.state
-            next_state = gs.take_action_updated(self.state, a)
+            next_state = gs.take_action(self.state, a)
             # update self.children/create new node in tree
             self.edges[a] = PUCTNode(next_state, action=a, parent=self)
         return self.edges[a]
