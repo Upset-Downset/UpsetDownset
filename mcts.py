@@ -7,6 +7,7 @@ Created on Fri Jan  1 15:20:55 2021
 """
 
 import gameState as gs
+import randomUpDown as rud
 import numpy as np
 import random
 import copy
@@ -25,14 +26,17 @@ class PUCTNode(object):
         self.is_expanded = False 
         # dict to store edges/children nodes: MCTNodes keyed by action 
         self.edges = {} 
-        # 1-D numpy array: action a --> P(self.state,a) for all actions a. To be updated with probs 
-        # UpDownNet(self.state, a) upon expansdion of node
+        # 1-D numpy array: action a --> P(self.state,a) for all actions a.
+        # To be updated with probs from NET upon expansdion of node
         self.edge_probs = np.zeros([gs.UNIV], dtype=np.float32)
-        # 1-D numpy array: action a --> W(self.state,a) for all actions a. To be updated upon backup
+        # 1-D numpy array: action a --> W(self.state,a) for all actions a. 
+        # To be updated upon backup
         self.edge_values = np.zeros([gs.UNIV], dtype=np.float32) 
-        # 1-D numpy array: action a --> N(self.state,a) for all actions a. To be updated upon backup
-        self.edge_visits = np.zeros([gs.UNIV], dtype=np.float64)
-        # list to store valid actions from self.state. To be updated upon expansion of node
+        # 1-D numpy array: action a --> N(self.state,a) for all actions a. 
+        # To be updated upon backup
+        self.edge_visits = np.zeros([gs.UNIV], dtype=np.float32)
+        # list to store valid actions from self.state. 
+        # To be updated upon expansion of node
         self.valid_actions = []
     
     def add_edge(self, a):
@@ -56,7 +60,8 @@ class PUCTNode(object):
             probs / (1 + self.edge_visits))
         # 1-D numpy array: action a --> PUCT(self.state, a) for all actions a
         PUCT = Q + U
-        # set PUCT(self.state, a) to negative infinity for all invalid actions a from self.state
+        # set PUCT(self.state, a) to negative infinity for all invalid actions 
+        # a from self.state
         invalid_actions = list(set(range(gs.UNIV)) - set(self.valid_actions))
         PUCT[invalid_actions] = -np.Inf
         # get the action recommended by PUCT algorithm
@@ -118,47 +123,82 @@ def MCTS(root, net, num_iters = 400):
     return root
 
 def MCTS_policy(root, temp):
-    return ((root.edge_visits)**(1/temp))/np.sum((root.edge_visits)**(1/temp))
+    if temp == 0:
+        policy = np.zeros(gs.UNIV, dtype=np.float32)
+        max_visit = np.argmax(root.edge_visits)
+        policy[max_visit] = 1
+    else:
+        policy = ((root.edge_visits)**(1/temp))/np.sum((root.edge_visits)**(1/temp))
+    return policy
 
-def self_play(initial_state, net, temp=1, tmp_thrshld=3, eps=0.01):
+def self_play(initial_state, net, temp=1, tmp_thrshld=3):
     ''' I THINK  THIS IS MOSTLY CORRECT. NEED SOME TESTING AND SUCH.
     '''
     states = []
     policies = []
     values = None
     train_data = None
-    cur_state = initial_state
     move_count = 0
-    moves = []
     actions = np.arange(gs.UNIV)
-    root = PUCTNode(cur_state, action=None, parent=None)
-    while not gs.is_terminal_state(cur_state):
+    root = PUCTNode(initial_state)
+    while not gs.is_terminal_state(root.state):
         MCTS(root, net)
         if move_count < tmp_thrshld:
             t = temp
         else:
-            t = eps
+            t = 0
         policy = MCTS_policy(root, t)
-        ### I GOT THIS ERROR A FEW TIMES 'ValueError: probabilities contain NaN' ###
         move = np.random.choice(actions, p=policy)
-        states.append(cur_state)
+        states.append(root.state)
         policies.append(policy)
-        moves.append(move)
         root = root.edges[move]
         root.to_root()
-        cur_state = root.state
         move_count += 1
-    ### NEED TO DETERMINE WHAT TO DO FOR POLICY WHEN STATE IS TERMINAL... ###
     if move_count %2 == 0:
         values = [(-1)**(i+1) for i in range(move_count)]
     else:
         values = [(-1)**i for i in range(move_count)]
-    train_data = [[state, policy, value] for state, policy, value 
+    train_data = [(state, policy, value) for state, policy, value 
                   in zip(states, policies, values)]
-    return train_data, moves
+    return train_data
 
-def eval_play():
+def evaluation(alpha_net, apprentice_net, num_plays=400, win_thrshld=0.55, temp = 0):
     '''
     SIMILAR TO self_play BUT USES TWO MCTSes AND AN INFINTESIMAL TEMP ALWAYS
     '''
-    pass
+    alpha = 0
+    apprentice = 1
+    apprentice_wins = 0
+    actions = np.arange(gs.UNIV)
+    
+    for i in range(num_plays):
+        print(i)
+        net_to_start = np.random.choice([alpha, apprentice])
+        up_or_down = np.random.choice([gs.UP, gs.DOWN])
+        G = rud.RandomGame(gs.UNIV, colored=True)
+        cur_state = gs.to_state(G, first_move = up_or_down)
+        cur_net = net_to_start
+        move_count = 0
+        winner = None
+        while not gs.is_terminal_state(cur_state):
+            root = PUCTNode(cur_state)
+            if cur_net == alpha:
+                MCTS(root, alpha_net)
+            else:
+                MCTS(root, apprentice_net)
+            policy = MCTS_policy(root, temp)
+            move = np.random.choice(actions, p=policy)
+            cur_state = root.edges[move].state
+            cur_net = 1 - cur_net
+            move_count += 1
+        if move_count %2 == 0:
+            winner = 1-net_to_start
+        else:
+            winner = net_to_start
+        if winner == apprentice:
+            apprentice_wins+=1
+    if (apprentice_wins/num_plays) > win_thrshld:
+        return True
+    else: 
+        return False
+        
