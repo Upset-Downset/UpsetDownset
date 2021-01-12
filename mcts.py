@@ -110,13 +110,14 @@ def MCTS(root, net, num_iters = 400):
         # no winner yet
         else:
             ### WE DONT HAVE A NET YET ###
-            #encoded_leaf_state = torch.from_numpy(leaf.state).float()
-            #probs, value = net(encoded_leaf_state)
-            #probs = probs.detach().cpu().numpy().reshape(-1)
-            #value = value.item()
+            encoded_leaf_state = \
+                torch.from_numpy(leaf.state).float().reshape(1, 4, gs.UNIV, gs.UNIV)
+            probs, value = net(encoded_leaf_state)
+            probs = probs.detach().cpu().numpy().reshape(-1)
+            value = value.item()
             #### WE DONT HAVE A NET YET ###
-            probs = np.random.dirichlet([1.0]*gs.UNIV)
-            value = random.choice([-1,1])
+            # probs = np.random.dirichlet([1.0]*gs.UNIV)
+            # value = random.choice([-1,1])
             actions = gs.valid_actions(leaf.state)
             leaf.expand(probs, actions)
             leaf.backup(value)
