@@ -5,7 +5,7 @@
 """
 
 import copy
-import random
+import collections 
 
 def relabel(G, relabel_map):
     ''' Relabel nodes of the directed graph 'G' according to 'relabel_map'. 
@@ -91,10 +91,7 @@ def edge_list(G):
         lists of ordered-pairs denoting the edges of G.
 
     '''
-    #a list to store the edges
     edges = []
-    #iterate over the nodes, then iterate over the the covers of that node.
-    #collect all the pairs.
     for v in G:
         for u in G[v]:
             edges.append((u,v))   
@@ -117,6 +114,34 @@ def number_of_edges(G):
     '''
     return sum(len(G[v]) for v in G)
 
+def sinks(G):
+    ''' Returns all sink nodes in 'G'. A node in the digraph 'G' is a sink 
+    if it has no outgoing edges.
+        
+    Returns
+    -------
+    list
+        all sinks of 'G'.
+        
+    Reference:
+        - https://mathworld.wolfram.com/DigraphSink.html
+
+    '''
+    return list(filter(lambda x : G[x] == [], G.keys())) 
+
+def sources(G):
+    ''' Returns all sorce nodes in 'G'. A node in the digraph 'G' is a source 
+    if it has no incoming edges.
+        
+    Returns
+    -------
+    list
+        all sources of 'G'.
+        
+    '''
+    rev = reverse(G)
+    return list(filter(lambda x : rev[x] == [], rev.keys()))
+
 def descendants(G, source):
     ''' Returns all nodes reachable from 'source' in the directed graph 'G'.
     
@@ -137,17 +162,14 @@ def descendants(G, source):
         Charles E. Leiserson, Ronald L. Rivest, Cliffors Stein, 3rd Edition, 
         MIT Press, 2009.    
     '''
-    ############# RECURSIVE HELPER ###########################################
     def dfs_visit(G,v):
         visited[v] = 0
         reachable_from_source.append(v)
         for u in G[v]:
             if visited[u] == -1:
                 dfs_visit(G,u)
-    ##########################################################################
+                
     reachable_from_source = []
-    # Keep track of nodes already visited by marking with 0 if already visited
-    # and -1 otherwise.
     visited = {v:-1 for v in G}
     for v in G[source]:
         if visited[v] == -1:
@@ -193,25 +215,21 @@ def is_acyclic(G):
         MIT Press, 2009.
 
     '''
-   ############# RECURSIVE HELPER ###########################################
     def dfs_visit(G,v):
         discovery[v] = 0
         for u in G[v]:
-            # If we encounter a node again before we've finished exploring it's 
+            # if we encounter a node again before we've finished exploring it's 
             # adjacecny list there must be a cycle!
             if discovery[u] == 0:
                 return False
             if discovery[u] == -1:
                 if not dfs_visit(G,u):
                     return False
-        # Done sxploring v.
         discovery[v] = 1
         return True
-    ##########################################################################
-    # Mark each vertex before discovery with -1, with 0 once discovered and 
+    # mark each vertex before discovery with -1, with 0 once discovered and 
     # 1 when we've finished exploring its adjacency list.
     discovery = {v:-1 for v in G}
-    # Loop over all undiscovered nodes and check for cycles.
     for v in G:
         if discovery[v] == -1:
             if not dfs_visit(G,v):
@@ -244,7 +262,6 @@ def topological_sort(G, reverse = False):
         MIT Press, 2009.
 
     '''
-    ############# RECURSIVE HELPER ###########################################
     def dfs_visit(G,v):
         discovery[v] = 0
         for u in G[v]:
@@ -252,20 +269,18 @@ def topological_sort(G, reverse = False):
                 dfs_visit(G,u)  
         # Done with v, add it to ordering.
         discovery[v] = 1
-        linear_order.append(v)
-    ##########################################################################
-    linear_order = []
-    # Mark each vertex before discovery with -1, with 0 once discovered and 
+        order.append(v)
+    order = []
+    # mark each vertex before discovery with -1, with 0 once discovered and 
     # 1 when we've finished exploring its adjacency list.
     discovery = {v:-1 for v in G}
-    # Loop over all undiscovered nodes placing in order as we go.
     for v in G:
         if discovery[v] == -1:
             dfs_visit(G,v)
     # Since we were appending finished nodes to the list we need to reverse.
     if not reverse:
-        linear_order.reverse()
-    return linear_order
+        order.reverse()
+    return order
 
 def transitive_closure(G):
     ''' Returns the transitive closure of the directed graph 'G'.
@@ -287,8 +302,6 @@ def transitive_closure(G):
          
     '''
     transitive_closure = {}
-    # Loop over all nodes of G, adding all descendants to adjacency list in 
-    # transitive closure. 
     for v in G:
         transitive_closure[v] = descendants(G,v)
     return transitive_closure
@@ -316,29 +329,23 @@ def transitive_reduction(G):
     *** All credit to the authors of the algorithm found in networkx's dag 
         code!
     '''                 
-    transitive_reduction = {}
-    # Store descendants of each node in G in a dict as they are needed so we 
-    # don't compute more times than necessary.
-    G_descendants = {}
-    # loop over nodes in G to compute adjacency list in transitive reduction
+    tr = {}
+    # update descendants of each node in G to dict as they are needed.
+    des = {}
     for v in G:
-        # Store nodes adjacent to v in transitive reduction.
-        tr_adj_v = set(G[v])
+        # nodes adjacent to v in transitive reduction.
+        adj_v = set(G[v])
         # loop over nodes adjacent to v in G removing their descendants from 
         # v's adjaceny list in transitive reduction
         for u in G[v]:
-            # If u has already been removed from v's adjaceny list in 
+            # if u has already been removed from v's adjaceny list in 
             # transitive reduction, then so have u's descendants in G.
-            if u in tr_adj_v:
-                # If necessary, compute u's descendants in G.
-                if u not in G_descendants:
-                    G_descendants[u] = set(descendants(G,u))
-                # Remove u's descendants in G from v's adjacency list in 
-                # transitive reduction
-                tr_adj_v -= G_descendants[u]
-        # update v's adjaceny list in transitive reduction
-        transitive_reduction[v] = list(tr_adj_v)
-    return transitive_reduction
+            if u in adj_v:
+                if u not in des:
+                    des[u] = set(descendants(G,u))
+                adj_v -= des[u]
+        tr[v] = list(adj_v)
+    return tr
 
 def longest_path_lengths(G, direction = 'outgoing'):
     ''' Returns the length of the longest path 'outgoing' (optionally, incoming) 
@@ -368,11 +375,11 @@ def longest_path_lengths(G, direction = 'outgoing'):
     '''
     # Store maximum path length computed for each node
     max_path_lengths = {v:0 for v in G}
-    # If we want incoming paths, then reverse the graph.
+    # if we want incoming paths, then reverse the graph.
     if direction == 'incoming':
         G = reverse(G)
     reverse_linear_order = topological_sort(G, reverse = True)
-    # Loop over nodes in reverse topological order, updating maximum length of 
+    # loop over nodes in reverse topological order, updating maximum length of 
     # each path as we go.
     for v in reverse_linear_order:
         MAX = 0
@@ -398,31 +405,29 @@ def connected_components(G):
         set of nodes in each connected compnent of the undirected graph 
         underlying 'G'.
     '''
-    ############# RECURSIVE HELPER ###########################################
     def dfs_visit(G,v):
         discovery[v] = 0
         for u in undirected[v]:
             if discovery[u] == -1:
                 v_component.add(u)
                 dfs_visit(undirected,u)  
-        # Done with v.
         discovery[v] = 1
-    ########################################################################## 
-    # initialize an undirected version of G.    
-    rev = reverse(G)
+    components = []
+    # if no nodes return empty list
+    if len(G) == 0:
+        return components
+    # get undirected version of G.
     undirected = copy.deepcopy(G)
+    rev = reverse(G)
     for v in undirected:
         undirected[v].extend(rev[v])
-    # store nodes in G in a set to be updated as we discover each component.
+    # to be updated as we discover each component.
     nodes = set(G)
-    # to store the components
-    components = []
-    # Mark each vertex before discovery with -1, with 0 once discovered and 
+    # mark each vertex before discovery with -1, with 0 once discovered and 
     # 1 when we've finished exploring its adjacency list.
     discovery = {v:-1 for v in G}
-    # choose a node from G.
     v = nodes.pop()
-    # dfs to find all components of G, updated nodes set as we go.
+    # dfs to find all components of G
     while True:
         v_component = {v}
         dfs_visit(undirected,v)
@@ -433,5 +438,77 @@ def connected_components(G):
         else: 
             break
     return components
+
+
+def hasse_layout(G):
+    ''' Returns the xy-coordinates of each node in a Hasse diagram plot layout
+    of the directed acyclic graph 'G'. 
+
+    Parameters
+    ----------
+    G : dict
+        adjacecny representation of a directed acyclic** graph. (Adjacecny lists 
+        keyed by node.)
+
+    Returns
+    -------
+    dict
+        xy-coordinates keyed by nodes of 'G':
+            - the y-coordinate of each node is assigned by the level of 
+            the node in 'G'. The level of a node N  in 'G' is the 
+            the length of the longest path in 'G' which ends at N.
+            - the x-coordinate of each node is assigned in such a way that
+            for each component of 'G' each level for that component 
+            is evenly spaced horizontally with previous level***
+        
+    ** It is assumed that 'G' is acyclic, we do not check.
+    *** At times this can cause an unwanted overlap between edges and nodes. 
+    However, it works pretty well most of the time.
+    
+    Reference: 
+        - https://en.wikipedia.org/wiki/Hasse_diagram
+    '''
+    # hasse diagram coordinates of nodes: coordinate keyed by node
+    hasse_pos = {}
+    components = connected_components(G)
+    # loop over components setting coordinates for each component. At each 
+    # iteration keep track of the largest x coordinate for use in spacing the
+    # next component.
+    prev_comp_max_x = 0
+    for nodes_list in components:
+        comp = subgraph(G,nodes_list)
+        # level of each node in current component: level keyed by node
+        levels_dict = longest_path_lengths(comp, direction = 'incoming')
+        # level set decomp of current component: node lists keyed by level
+        level_sets = collections.defaultdict(list)
+        for key, val in sorted(levels_dict.items()):
+            level_sets[val].append(key)
+        # loop over all levels in current component, starting from bottom and 
+        # moving up level by level. Initialize coordinates 
+        # for all nodes in the current level. At each iteration we keep track
+        # of the right most x coordinate and size of previous level
+        widest_level_size = len(max(level_sets.values(), key=len))
+        bottom_level_size = len(level_sets[0])
+        x_gap = (widest_level_size - bottom_level_size)/2
+        prev_level_left_x = prev_comp_max_x + x_gap + 1
+        prev_level_size = 0
+        for l in sorted(level_sets):
+            level_size = len(level_sets[l])
+            # we shift the nodes of current level by half the signed difference
+            # between the size of the previous level and the current level. 
+            # This evenly centers the levels on top of one another.
+            if prev_level_size == 0:
+                shift = 0
+            else:
+                shift = (prev_level_size - level_size)/2
+            level_left_x = prev_level_left_x + shift
+            x_coords = [level_left_x + i for i in range(level_size)]
+            hasse_pos.update({node: (x,l) for node, x in \
+                        zip(level_sets[l], x_coords)}) 
+            # updates for next component and next level, respectively.
+            prev_comp_max_x = max(prev_comp_max_x, level_left_x + level_size-1)
+            prev_level_left_x = level_left_x
+            prev_level_size = level_size  
+    return hasse_pos
 
     
