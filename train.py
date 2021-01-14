@@ -77,9 +77,9 @@ def evaluation(alpha_net, apprentice_net, num_plays=400, win_thrshld=0.55, temp 
         if winner == apprentice:
             apprentice_wins+=1
     if (apprentice_wins/num_plays) > win_thrshld:
-        return True
+        return True, apprentice_wins
     else: 
-        return False
+        return False, apprentice_wins
         
 
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
             alpha_net.load_state_dict(torch.load(str(best_idx) + 'alpha_net.pt'))
             apprentice_better_than_alpha = evaluation(apprentice_net, alpha_net, num_plays=EVALUATION_ROUNDS, temp=TEMP)
 
-            if apprentice_better_than_alpha:
+            if apprentice_better_than_alpha[0]:
                 print("Net is better than cur best, sync")
                 best_idx += 1
                 s = str(best_idx)
