@@ -306,15 +306,13 @@ def self_play(initial_state, net, temp=1, tmp_thrshld=3):
         the state as determined by the outcome of the self-play from the 
         current players perspective. We do not include terminal states.
     '''
-    # states encountered
     states = []
-    # correspnding policies
     policies = []
-    
-    # play until a terminal state is reached
     move_count = 0
     actions = np.arange(gs.UNIV)
     root = PUCTNode(initial_state)
+    
+    # play until a terminal state is reached
     while not gs.is_terminal_state(root.state):
         MCTS(root, net)
         if move_count <= tmp_thrshld:
@@ -335,7 +333,6 @@ def self_play(initial_state, net, temp=1, tmp_thrshld=3):
     else:
         values = [(-1)**i for i in range(move_count)]
         
-    # update training data
     train_data = [(state, policy, value) for state, policy, value 
                   in zip(states, policies, values)]
     
