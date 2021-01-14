@@ -5,159 +5,166 @@
 """
 
 import matplotlib.pyplot as plt
-import dagUtility as dag                               
+import digraph    
+
+def color(c):
+    ''' Assigns an RGB color value to 'c'.
+
+    Parameters
+    ----------
+    c : int
+        1, 0 or -1 (blue resp. green, red).
+
+    Returns
+    -------
+    RGB color value
+       RGB color value corresponding to 'c'.
+
+    '''
+    colordict = {-1 : '#F05252', 0 : '#09D365', 1 : '#5284F0'}
+    return colordict[c]                           
 
 class UpDownPlot(object):
-    '''
-    Abstract class for constructing a visualization of an UpDown object.
+    '''Abstract class for constructing and mutating a visualization of an 
+    upset-downset game.
     '''
 
     def __init__(self, game, marker='o'):               
-        """
-        Plots the underlying Hasse diagram (transitively reduced DAG) of the 
-        poset underlying an instance of class UpDown using the 'hasse_coordinates'
-        attribute: By default a node in the graph is plotted at the point (n,l), 
-        where n is the integer label of the node and l is its level. 
-        (See levels() method). Since node --> level preserves the order of 
-        cover relations, this presentation will visually preserve up-sets and 
-        down-sets. 
+        '''
+        Plots the  Hasse diagram (transitively reduced directed 
+        acyclic graph with all edges pointing up) underlying the upset-downset 
+        game, 'game'. The node positions in the plot are determined according
+        to the 'hasse_layout' function in the digraph module.
         
-    
+        ** Besides simply plotting a game of upset-downset, when interactively 
+        playing a game this class allows for the easy mutation of the plot so 
+        as to keep edge and vertex positions consistent throughout play. (See 
+        the leave_subgraph() method.)
+
         Parameters
         ----------
-        gane : UpDown
-            UD is an instance of class UpDown from the module upDown. 
-            We use UD to extract the following information.
-            0) node labels
-            1) node colors
-            2) edge list 
-            3) node levels.
+        game : UpDown
+            a game of upset-downset
     
         Returns
         -------
         list
-            inormation about the figure
+            inormation about the figure: 
             [0] fig : matplotlib.figure
-            [1] fig_edges : dictionary of figure edges with edge labels as keys
-            [2] fig_vertices : dictionary of figure vertices with vertex labels as keys
-            [3] fig_vertex_labesl : dictionary of figure vertex labels
-                                    with vertex labels as keys.
-        """
-        #define a color assignment function.
-        def color(n):
-            colordict = {-1 : '#F05252', 0 : '#09D365', 1 : '#5284F0'}
-            return colordict[n]
+            [1] fig_edges : dict, figure edges, keyed by edge labels.
+            [2] fig_vertices : dict, figure vertices keyed by labels.
+            [3] fig_vertex_labesl : dict, figure vertex labels keyed by 
+            vertex labels 
+        '''
         
-        #get the cover relations, color dictionary, node and edge lists.      
-        covers = game.cover_relations            
+        # get the dag, coloring, node and edge lists .     
+        dag = game.dag            
         colors = game.coloring
-        nodes = game.elements
-        edges = dag.edge_list(covers)
-        pos = game.hasse_coordinates             
+        nodes = game.dag.keys()
+        edges = digraph.edge_list(dag)
+        pos = digraph.hasse_layout(dag)             
             
-        #Set up the figure and an axes.
-        #The empty dictionaries will be filled pointers to the lines and labels
-        #of the figure, so pieces can be removed with ease.
+        # set up the figure and an axes. The empty dicts
+        # will be filled by pointers to the lines, vertices 
+        # and labels of the figure, so pieces can be removed with ease.
         fig = plt.figure()
         ax = fig.add_subplot()
         fig_edges = {}
         fig_vertices = {}
         fig_vertex_labels = {}
     
-        #Iterate over the edge set.
-        for i in edges:
-            #add a black line segment to the figure connecting the vertices i[0] and i[1].
-            ax.plot([pos[i[0]][0],pos[i[1]][0]],[pos[i[0]][1],pos[i[1]][1]], color='000000')  
-            #update the dictionary fig_edges with a pointer to the line segment in the figure.
-            fig_edges[(i[0],i[1])] = ax.lines[-1]
+        for e in edges:
+            # add a line segment to the figure connecting 
+            # endpoints of edge
+            ax.plot([pos[e[0]][0],pos[e[1]][0]],
+                    [pos[e[0]][1],pos[e[1]][1]], color='000000')  
+            # update fig_edges with a pointer to the line segment 
+            # in the figure.
+            fig_edges[(e[0],e[1])] = ax.lines[-1]
                             
-        #Iterate over the node set.
-        for i in nodes:
-            #get the color of the node
-            c = color(colors[i])     
-            #add a point to the figure with color c.
-            ax.plot(pos[i][0],pos[i][1], marker=marker, color=c, markersize=18)
-            #add a label to the vertex
-            ax.annotate(str(i), xy=(pos[i][0],pos[i][1]))
-            #update the fic_vertices and fig_vertex_labels dictionaries with
-            #pointers to the new additions.
-            fig_vertices[i] = ax.lines[-1]
-            fig_vertex_labels[i] = ax.texts[-1]
+        for n in nodes:
+            # get the color of the node
+            c = color(colors[n])     
+            # add a point to the figure with color c.
+            ax.plot(pos[n][0],pos[n][1], marker=marker, color=c, markersize=18)
+            # add a label to the vertex
+            ax.annotate(str(n), xy=(pos[n][0],pos[n][1]))
+            # update fig_vertices and fig_vertex_labels with
+            # pointers to the new additions.
+            fig_vertices[n] = ax.lines[-1]
+            fig_vertex_labels[n] = ax.texts[-1]
         
-        #don't plot the x or y axes.
+        # don't plot the x or y axes.
         plt.axis('off')
          
-        # Set attributes
         self.figure = fig
         self.figure_edges = fig_edges
         self.figure_vertices = fig_vertices
         self.figure_vertex_labels = fig_vertex_labels
 
 
-    def leave_subgraph_fig(self, H):
-        """
-        If G is an UpDown, fig_info is the information about the matplotlib figure of G, 
-        and H is an UpDown whose underlying graph is a subgraph of G, then this function removes
-        any part of the matplotlib figure of G that is not also in H.
-        Additionally, the function returns, the figure information of H.
+    def leave_subgraph_fig(self, sub_game):
+        ''' Mutates 'self' to only contain edge, vertice and vertex label
+        information of 'sub_game' leaving the remaining figure information 
+        as it was.
         
-    
         Parameters
         ----------
-        H : UpDown
-            A subgraph of G (G is an UpDown whose figure has been plotted)
-        
-        fig_info : list
-            A list containing information about the figure of G.
-            [0] fig : matplotlib.figure
-            [1] fig_edges : dictionary of figure edges with edge labels as keys
-            [2] fig_vertices : dictionary of figure vertices with vertex labels as keys
-            [3] fig_vertex_labesl : dictionary of figure vertex labels
-                                    with vertex labels as keys.
-                
+        sub_game : UpDown
+            an option of the upset-downset game whose figure is given 
+            by 'self'.            
     
         Returns
         -------
         None
         
-        Effect
-        -------
-        Mutates fig_info to only contain the information of the subgraph H.
-        """
+        '''
         
-        #Get the nodes and edges of H.
-        covers = H.cover_relations             
-        nodes = H.elements                       
-        edges = dag.edge_list(covers)
+        # get the nodes and edges of the sub game
+        dag = sub_game.dag            
+        nodes = sub_game.dag.keys()                      
+        edges = digraph.edge_list(dag)
         
-        #Get dictionaries for the information of the figure of 
-        #the subgraph H in G.
+        # initialize dicts to store  sub game figure info
         sub_fig_edges = {}
         sub_fig_vertices = {}
         sub_fig_vertex_labels = {}
         
-        #Collect the figure information of the subgraph.
-        for i in edges:
-            sub_fig_edges[i] = self.figure_edges.pop(i)
-        for j in nodes:
-            sub_fig_vertices[j] = self.figure_vertices.pop(j)
-            sub_fig_vertex_labels[j] = self.figure_vertex_labels.pop(j)
+        # collect the sub game figure info
+        for e in edges:
+            sub_fig_edges[e] = self.figure_edges.pop(e)
+        for n in nodes:
+            sub_fig_vertices[n] = self.figure_vertices.pop(n)
+            sub_fig_vertex_labels[n] = self.figure_vertex_labels.pop(n)
             
-        #Remove the information not in the subgraph from the figure.
-        for i in self.figure_edges:
-            self.figure_edges[i].remove()
-        for j in self.figure_vertices:
-            self.figure_vertices[j].remove()
-            self.figure_vertex_labels[j].remove()
+        # remove the figure info not in the sub game
+        for e in self.figure_edges:
+            self.figure_edges[e].remove()
+        for v in self.figure_vertices:
+            self.figure_vertices[v].remove()
+            self.figure_vertex_labels[v].remove()
         
-        #Change the figure information to what's left in the figure.
+        # mutate the figure info to match whats left in the sub game
         self.figure_edges = sub_fig_edges
         self.figure_vertices = sub_fig_vertices
         self.figure_vertex_labels = sub_fig_vertex_labels
     
     def show(self):
+        ''' Plots the game.
+        Returns
+        -------
+        None.
+
+        '''
         self.figure.show()
         
     def close(self):
+        ''' Closes the game plot.
+        
+        Returns
+        -------
+        None.
+
+        '''
         plt.close(self.figure)
         
