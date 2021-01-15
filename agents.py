@@ -3,14 +3,6 @@
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-import os
-import sys
-mycwd = os.getcwd()
-os.chdir('..')
-prevwd = os.getcwd()
-sys.path.append(prevwd)
-os.chdir(mycwd)
-
 
 import random
 def random_agent(game, player):
@@ -68,7 +60,7 @@ def min_agent(game, player):
         colors = {-1,0}    
     # Find the list of opions for the agent
     options = list(filter(lambda x : game.coloring[x] in \
-                          colors, list(game.elements)))
+                          colors, list(game.dag)))
     # pick option which removes the least elements from the board
     u = options[0]
     if player == 'Up':
@@ -113,7 +105,7 @@ def max_agent(game, player):
         colors = {-1,0} 
     # Find the list of opions for the agent
     options = list(filter(lambda x : game.coloring[x] in \
-                          colors, list(game.elements)))
+                          colors, list(game.dag)))
     # pick option which removes the most elements from the board
     u = options[0]
     if player == 'Up':
