@@ -255,7 +255,7 @@ def MCTS(root, net, num_iters = 400):
 def MCTS_policy(root, temp):
     ''' Returns the probabilities of choosing an edge from 'root'. Derived 
     from MCTS stats. Depending on 'temp', probabilities are either proprtional 
-    to the exponential edge visit count or deterministic choosing the edge 
+    to the exponential edge visit count or deterministic, choosing the edge 
     with highest visit count.
     
     Parameters

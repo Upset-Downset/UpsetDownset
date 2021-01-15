@@ -9,7 +9,11 @@ import digraph
 import upDown as ud
 import copy
 
+# universe size our games live in: the maximum number of nodes 
+# a game our model can play
 UNIV = 10
+
+# for tracking the current player 
 UP = 0
 DOWN = 1
 
@@ -200,5 +204,42 @@ def is_terminal_state(state):
 
     '''
     return True if len(valid_actions(state)) == 0 else False
+
+def exploit_symmetries(training_triple, dim = UNIV, num_samples=10):
+    '''Returns 'num_samples' symmetries of 'training_triple'.
+    (A reindexing of node labels in any upset-downset game provides a
+     symmetry of the gameboard.)
+    
+    Parameters
+    ----------
+    training_triple : tuple
+        a triple of state, policy and value for training from self-play.
+    dim : int (nonnegative), optional
+        must be at least as large as the number of nodes in 'game'. 
+        The default is UNIV.
+    num : int (nonnegative), optional
+        The number of symmetries to take (sampled w/ repitition).
+        The default is 10.
+
+    Returns
+    -------
+    sym_train_data : list
+        triples of training data after symmetries have been applied.
+
+    ''' 
+    state, policy, value =  training_triple
+    sym_train_data = []
+    
+    for _ in range(num_samples):
+        # get random permutation on dim # letters
+        p = np.random.permutation(dim)
+        # re-index nodes by permuting columns and rows
+        state_sym = state[:,:,p]
+        state_sym = state_sym[:,p,:]
+        # permute nodes in policy too!
+        policy_sym = policy[p]
+        sym_train_data. append((state_sym, policy_sym, value))
+        
+    return sym_train_data
   
      
