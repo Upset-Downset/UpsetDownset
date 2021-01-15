@@ -5,6 +5,7 @@
 """
 
 import upDown as ud
+import random
 
 def complete_bipartite_dag(graphs):
     ''' Returns a directed acyclic graph corresponding to the complete 
