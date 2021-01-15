@@ -14,14 +14,17 @@ def relabel(G, relabel_map):
     
     ----------
     G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
+    
     relabel_map : dict
         new node labels keyed by old node labels. 
+        
     Returns
     -------
     graph: dict
-        adjacecny representation of the directed graph 'G' with nodes relabelled by 'relabel_map'.
+        adjacency representation of the directed graph 'G' with nodes 
+        relabelled by 'relabel_map'.
     '''
     graph = {}
     for v in G:
@@ -35,16 +38,17 @@ def subgraph(G, nodes):
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacencylists keyed 
         by node.)
-    nodes : iterable
-        nodes of 'G'
-
+        
+    nodes : list
+        subset of nodes of 'G'.
+        
     Returns
     -------
     dict
-        adjacecny representation of a the subgraph of 'G' on 'nodes'.
-        (Adjacecny lists keyed by node.)       
+        adjacency representation of the subgraph of 'G' on 'nodes'. (Adjacency 
+        lists keyed by node.)       
 
     '''
     sub_graph = {}
@@ -57,16 +61,17 @@ def subgraph(G, nodes):
 
 def reverse(G):
     ''' Returns the reverse of the directed graph 'G'.
+    
     Parameters
     ----------
     G : dict 
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
 
     Returns
     -------
     dict
-        adjacecny representation of the reverse of 'G'. (Adjacecny lists keyed 
+        adjacency representation of the reverse of 'G'. (Adjacency lists keyed 
         by node.)
         
     '''
@@ -77,12 +82,12 @@ def reverse(G):
     return reverse
 
 def edge_list(G):
-    '''Returns list of edges of the directed graph 'G'.
+    '''Returns all edges of the directed graph 'G'.
     
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
+        adjacency representation of a directed graph. (Adjacency lists 
         keyed by node.)
 
     Returns
@@ -98,59 +103,69 @@ def edge_list(G):
     return edges
 
 def number_of_edges(G):
-    ''' Return the number of edges in the directed graph 'G'.
+    ''' Returns the number of edges in the directed graph 'G'.
 
     Parameters
     ----------
     G : dict 
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
 
     Returns
     -------
-    Int
+    int
         the number of edges in 'G'.
 
     '''
     return sum(len(G[v]) for v in G)
 
 def sinks(G):
-    ''' Returns all sink nodes in 'G'. A node in the digraph 'G' is a sink 
-    if it has no outgoing edges.
+    ''' Returns all sink nodes in the directed graph 'G'.
+    
+    Parameters
+    ----------
+    G : dict 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
+        by node.)
         
     Returns
     -------
     list
-        all sinks of 'G'.
-        
-    Reference:
-        - https://mathworld.wolfram.com/DigraphSink.html
+        all sinks of 'G'.  (A node is a sink if it has no outgoing edges.)
 
     '''
     return list(filter(lambda x : G[x] == [], G.keys())) 
 
 def sources(G):
-    ''' Returns all sorce nodes in 'G'. A node in the digraph 'G' is a source 
-    if it has no incoming edges.
+    ''' Returns all source nodes in the directed graph 'G'.
+    
+    Parameters
+    ----------
+    G : dict 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
+        by node.)
         
     Returns
     -------
     list
-        all sources of 'G'.
+        all sources of 'G'. (A node is a source if it has no incoming edges.)
         
     '''
     rev = reverse(G)
     return list(filter(lambda x : rev[x] == [], rev.keys()))
 
 def descendants(G, source):
-    ''' Returns all nodes reachable from 'source' in the directed graph 'G'.
+    ''' Returns all nodes reachable from 'source' node in the directed 
+    graph 'G'.
     
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
-    source : node of 'G'. 
+        
+    source : int (nonnegative)
+        node of 'G'. 
 
     Returns
     -------
@@ -160,7 +175,8 @@ def descendants(G, source):
     Reference:
         Introduction to Algotithms: Chapter 22, Thomas H. Cormen, 
         Charles E. Leiserson, Ronald L. Rivest, Cliffors Stein, 3rd Edition, 
-        MIT Press, 2009.    
+        MIT Press, 2009. 
+        
     '''
     def dfs_visit(G,v):
         visited[v] = 0
@@ -168,7 +184,8 @@ def descendants(G, source):
         for u in G[v]:
             if visited[u] == -1:
                 dfs_visit(G,u)
-                
+        visited[v] = 1
+        
     reachable_from_source = []
     visited = {v:-1 for v in G}
     for v in G[source]:
@@ -177,14 +194,17 @@ def descendants(G, source):
     return reachable_from_source
    
 def ancestors(G, source):
-    ''' Returns all nodes having a path to 'source' in the directed graph 'G'.
+    ''' Returns all nodes having a path to 'source' node in the directed 
+    graph 'G'.
     
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacencyrepresentation of a directed graph. (Adjacency lists keyed 
         by node.)
-    source : node of 'G'.
+        
+    source : int (nonnegative)
+        node of 'G'.
 
     Returns
     -------
@@ -197,11 +217,12 @@ def ancestors(G, source):
     return has_path_to_source
 
 def is_acyclic(G):
-    ''' Returns true if the directed graph G is acyclic and false otherwise.
+    ''' Returns wether the directed graph G is acyclic.
+    
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
 
     Returns
@@ -216,35 +237,35 @@ def is_acyclic(G):
 
     '''
     def dfs_visit(G,v):
-        discovery[v] = 0
+        visited[v] = 0
         for u in G[v]:
             # if we encounter a node again before we've finished exploring it's 
             # adjacecny list there must be a cycle!
-            if discovery[u] == 0:
+            if visited[u] == 0:
                 return False
-            if discovery[u] == -1:
+            if visited[u] == -1:
                 if not dfs_visit(G,u):
                     return False
-        discovery[v] = 1
+        visited[v] = 1
         return True
-    # mark each vertex before discovery with -1, with 0 once discovered and 
-    # 1 when we've finished exploring its adjacency list.
-    discovery = {v:-1 for v in G}
+
+    visited = {v:-1 for v in G}
     for v in G:
-        if discovery[v] == -1:
+        if visited[v] == -1:
             if not dfs_visit(G,v):
                 return False
     return True
 
 def topological_sort(G, reverse = False):
     ''' Returns a topological ordering of the nodes in the directed acyclic**
-    graph G.
+    graph 'G'.
 
     Parameters
     ----------
     G : dict
-        adjacecny representation of an acyclic directed graph. (Adjacecny lists 
+        adjacency representation of a directed acyclic graph. (Adjacency lists 
         keyed by node.)
+        
     reverse : bool, optional
         if True, the reverse of the topological ordering will be returned. 
         The default is False.
@@ -252,7 +273,7 @@ def topological_sort(G, reverse = False):
     Returns
     -------
     list
-        a topological ordering of the nodes in 'G'.
+        a topological ordering of the nodes in 'G'. 
         
     ** It is assumed that 'G' is acyclic, we do not check.
     
@@ -263,19 +284,18 @@ def topological_sort(G, reverse = False):
 
     '''
     def dfs_visit(G,v):
-        discovery[v] = 0
+        visited[v] = 0
         for u in G[v]:
-            if discovery[u] == -1:
+            if visited[u] == -1:
                 dfs_visit(G,u)  
         # Done with v, add it to ordering.
-        discovery[v] = 1
+        visited[v] = 1
         order.append(v)
+        
     order = []
-    # mark each vertex before discovery with -1, with 0 once discovered and 
-    # 1 when we've finished exploring its adjacency list.
-    discovery = {v:-1 for v in G}
+    visited = {v:-1 for v in G}
     for v in G:
-        if discovery[v] == -1:
+        if visited[v] == -1:
             dfs_visit(G,v)
     # Since we were appending finished nodes to the list we need to reverse.
     if not reverse:
@@ -288,13 +308,13 @@ def transitive_closure(G):
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed graph. (Adjacecny lists keyed 
+        adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
 
     Returns
     -------
     dict
-        adjacecny representation of the transitive closure of 'G'. (Adjacecny 
+        adjacency representation of the transitive closure of 'G'. (Adjacency 
         lists keyed by node.)
         
     Reference:
@@ -308,16 +328,17 @@ def transitive_closure(G):
 
 def transitive_reduction(G):
     ''' Returns the transitive reduction of the directed acyclic** graph 'G'.
+    
     Parameters.
     ----------
     G : dict
-        adjacecny representation of an acyclic directed graph. (Adjacecny lists 
+        adjacency representation of a directed acyclic graph. (Adjacency lists 
         keyed by node.)
 
     Returns
     -------
     dict
-        adjacecny representation of the transitive reduction of 'G'. (Adjacecny 
+        adjacency representation of the transitive reduction of 'G'. (Adjacency 
         lists keyed by node.
         
     ** It is assumed that 'G' is acyclic, we do not check.
@@ -326,10 +347,9 @@ def transitive_reduction(G):
         - https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/dag.html
         - https://en.wikipedia.org/wiki/Transitive_reduction
         
-    *** All credit to the authors of the algorithm found in networkx's dag 
-        code!
+        
     '''                 
-    tr = {}
+    transitive_reduction = {}
     # update descendants of each node in G to dict as they are needed.
     des = {}
     for v in G:
@@ -344,22 +364,23 @@ def transitive_reduction(G):
                 if u not in des:
                     des[u] = set(descendants(G,u))
                 adj_v -= des[u]
-        tr[v] = list(adj_v)
-    return tr
+        transitive_reduction[v] = list(adj_v)
+    return transitive_reduction
 
 def longest_path_lengths(G, direction = 'outgoing'):
-    ''' Returns the length of the longest path 'outgoing' (optionally, incoming) 
-    each node in the directed acyclic** graph 'G' 
+    ''' Returns the length of the longest path 'outgoing' (optionally, 
+    'incoming')  each node in the directed acyclic** graph 'G' 
     
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
+        adjacency representation of a directed acyclic graph. (Adjacency lists 
         keyed by node.)
+        
     direction : str, optional
-         If 'outgoing', the length of the longest path starting at each node will
-         length will be omputed. If 'incoming', the length of the longest path 
-         ending at each node will length will be computed.
+         If 'outgoing', the length of the longest path starting at each node 
+         will be computed. If 'incoming', the length of the longest path 
+         ending at each node will be computed.
 
     Returns
     ------- 
@@ -390,28 +411,29 @@ def longest_path_lengths(G, direction = 'outgoing'):
     return max_path_lengths
 
 def connected_components(G):
-    ''' Returns the nodes in each component of the undirected 
-    graph underlying the directed graph 'G"."
+    ''' Returns the nodes in each component of the undirected graphs
+    underlying the directed graph 'G"."
 
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed acyclic graph. (Adjacecny lists 
+        adjacency representation of a directed acyclic graph. (Adjacency lists 
         keyed by node.)
 
     Returns
     -------
     list
-        set of nodes in each connected compnent of the undirected graph 
+        lists of nodes in each connected compnent of the undirected graph 
         underlying 'G'.
     '''
     def dfs_visit(G,v):
-        discovery[v] = 0
+        visited[v] = 0
         for u in undirected[v]:
-            if discovery[u] == -1:
+            if visited[u] == -1:
                 v_component.add(u)
                 dfs_visit(undirected,u)  
-        discovery[v] = 1
+        visited[v] = 1
+        
     components = []
     # if no nodes return empty list
     if len(G) == 0:
@@ -423,9 +445,7 @@ def connected_components(G):
         undirected[v].extend(rev[v])
     # to be updated as we discover each component.
     nodes = set(G)
-    # mark each vertex before discovery with -1, with 0 once discovered and 
-    # 1 when we've finished exploring its adjacency list.
-    discovery = {v:-1 for v in G}
+    visited = {v:-1 for v in G}
     v = nodes.pop()
     # dfs to find all components of G
     while True:
@@ -442,12 +462,13 @@ def connected_components(G):
 
 def hasse_layout(G):
     ''' Returns the xy-coordinates of each node in a Hasse diagram plot layout
-    of the directed acyclic graph 'G'. 
+    of the directed acyclic graph 'G'. (In particular, all arrows (edges) 
+    should be pointing up.)
 
     Parameters
     ----------
     G : dict
-        adjacecny representation of a directed acyclic** graph. (Adjacecny lists 
+        adjacency representation of a directed acyclic** graph. (Adjacency lists 
         keyed by node.)
 
     Returns
@@ -462,8 +483,9 @@ def hasse_layout(G):
             is evenly spaced horizontally with previous level***
         
     ** It is assumed that 'G' is acyclic, we do not check.
-    *** At times this can cause an unwanted overlap between edges and nodes. 
-    However, it works pretty well most of the time.
+    
+    NOTE: At times this layout can return an unwanted overlap between edges 
+    and nodes. However, it works pretty well most of the time.
     
     Reference: 
         - https://en.wikipedia.org/wiki/Hasse_diagram
