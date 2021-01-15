@@ -224,8 +224,7 @@ def exploit_symmetries(training_triple, dim = UNIV, num_samples=10):
     Returns
     -------
     sym_train_data : list
-        'num_samples' triples of training data after symmetries have 
-        been applied to 'training data'.
+        'num_samples' symmetries of 'training data'.
 
     ''' 
     state, policy, value =  training_triple
