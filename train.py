@@ -144,7 +144,7 @@ if __name__ == "__main__":
         if step_idx % EVALUATE_EVERY_STEP == 0:
             alpha_net = model.Net(input_shape=model.OBS_SHAPE, actions_n=gs.UNIV)
             alpha_net.load_state_dict(torch.load(str(best_idx) + 'alpha_net.pt'))
-            apprentice_better_than_alpha = evaluation(apprentice_net, alpha_net, num_plays=EVALUATION_ROUNDS, temp=TEMP)
+            apprentice_better_than_alpha = evaluation(alpha_net, apprentice_net, num_plays=EVALUATION_ROUNDS, temp=0)
 
             if apprentice_better_than_alpha[0]:
                 print("Net is better than cur best, sync")
