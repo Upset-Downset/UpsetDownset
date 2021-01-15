@@ -55,7 +55,7 @@ def evaluation(alpha_net, apprentice_net, num_plays=400, win_thrshld=0.55, temp 
         net_to_start = np.random.choice([alpha, apprentice])
         up_or_down = np.random.choice([gs.UP, gs.DOWN])
         G = rud.RandomGame(gs.UNIV, colored=True)
-        cur_state = gs.to_state(G, first_move = up_or_down)
+        cur_state = gs.to_state(G, to_move = up_or_down)
         cur_net = net_to_start
         move_count = 0
         winner = None
@@ -103,7 +103,7 @@ if __name__ == "__main__":
             size = random.randint(1, gs.UNIV)
             G = rud.RandomGame(size, colored=True)
             first_move = random.choice(['UP','DOWN'])
-            initial_state = gs.to_state(G, dim=gs.UNIV, first_move=first_move)
+            initial_state = gs.to_state(G, dim=gs.UNIV, to_move=first_move)
             train_data = mcts.self_play(initial_state, apprentice_net, temp=TEMP, tmp_thrshld=TEMP_THRESH)
             list(map(replay_buffer.append, train_data))
         
