@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-@author: Charlie petersen and Jamison Barsotti
+@author: Charles Petersen and Jamison Barsotti
 """
 
 import numpy as np

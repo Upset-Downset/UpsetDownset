@@ -3,7 +3,7 @@
 """
 Created on Thu Sep 24 10:16:36 2020
 
-@author: jamison
+@author: Charles Petersen and Jamison Barsotti
 
 Play a randomized version of UpDown through the terminal.
 """

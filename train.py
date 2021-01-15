@@ -3,7 +3,7 @@
 """
 Created on Mon Jan 11 22:59:39 2021
 
-@author: jamison
+@author: Charles Petersen and Jamison Barsotti
 """
 import os
 import random
