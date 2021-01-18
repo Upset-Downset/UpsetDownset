@@ -281,7 +281,6 @@ class UpDown(object):
                         sub_game = self.up_play(u)
                         board.leave_subgraph_fig(sub_game)
                         self = sub_game
-                        plt.close()
                         plt.pause(0.01)                  
                     else:
                         print("The computer is choosing...")
