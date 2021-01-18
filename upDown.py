@@ -456,6 +456,8 @@ class UpDown(object):
                     out = R
             # memoize the outcome
             outcomes_store[nodes] = out
+           
+            return out
             
         # store nodes of the game to a hashable object
         nodes = frozenset(self.dag)
@@ -463,6 +465,7 @@ class UpDown(object):
         # the outcome of each of the games options (and memoizing).
         outcomes_store = {}
         get_outcome(self, nodes, outcomes_store)
+        
         return outcomes_store[nodes]
     
     def __neg__(self):                
