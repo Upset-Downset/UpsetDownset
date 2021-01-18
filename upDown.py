@@ -9,6 +9,7 @@ import upDownPlot as udp
 import matplotlib.pyplot as plt
 import random
 import time
+from IPython.display import clear_output
 
 class UpDown(object):
     ''' Abstract class for construction of an upset-downset game from a 
@@ -354,7 +355,9 @@ class UpDown(object):
                         sub_game = self.up_play(u)
                         board.leave_subgraph_fig(sub_game)
                         self = sub_game
-                        plt.pause(0.01)             
+                        plt.pause(0.01)   
+                        
+            clear_output(wait=True)
             # update player token (i.e. change player turn)
             i += 1   
             
