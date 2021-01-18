@@ -463,7 +463,7 @@ class UpDown(object):
         # the outcome of each of the games options (and memoizing).
         outcomes_store = {}
         get_outcome(self, nodes, outcomes_store)
-        return outcomes_store
+        return outcomes_store[nodes]
     
     def __neg__(self):                
         '''Returns the negative of the game.
