@@ -439,7 +439,7 @@ class UpDown(object):
                     GRout = outcomes_store[GRnodes] if GRnodes in \
                         outcomes_store else \
                             get_outcome(GR, GRnodes, outcomes_store)
-                    up_outcomes.add(GRout)
+                    down_outcomes.add(GRout)
                     del GR
                 # determine outcome of G via the outcomes of the options:
                 # first player to move wins
