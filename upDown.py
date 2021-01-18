@@ -386,7 +386,7 @@ class UpDown(object):
             'Down', Down can force a win. (Playing first or second). 
 
         '''
-        def get_outcome(G, nodes):
+        def get_outcome(G, nodes, memo):
             num_nodes = len(G)
             num_edges = digraph.number_of_edges(G.dag)
             color_sum = G.color_sum()
@@ -428,31 +428,31 @@ class UpDown(object):
                 for x in G.up_nodes():
                     GL = G.up_play(x)
                     GLnodes = frozenset(GL.dag)
-                    if GLnodes in outcomes_store:
-                        up_outcomes.add(outcomes_store[GLnodes])
-                    else:
-                        up_outcomes.add(get_outcome(GL, GLnodes))
+                    GLout = outcomes_store[GLnodes] if GLnodes in \
+                        outcomes_store else \
+                            get_outcome(GL, GLnodes, outcomes_store)
+                    up_outcomes.add(GLout)
                     del GL
                 for x in G.down_nodes():
                     GR = G.down_play(x)
                     GRnodes = frozenset(GR.dag)
-                    if GRnodes in outcomes_store:
-                        down_outcomes.add(outcomes_store[GRnodes])
-                    else:
-                        down_outcomes.add(get_outcome(GR, GRnodes))
+                    GRout = outcomes_store[GRnodes] if GRnodes in \
+                        outcomes_store else \
+                            get_outcome(GR, GRnodes, outcomes_store)
+                    up_outcomes.add(GRout)
                     del GR
                 # determine outcome of G via the outcomes of the options:
                 # first player to move wins
-                if {P, L} & up_outcomes and {P,R} & down_outcomes:
+                if ({P, L} & up_outcomes) and ({P,R} & down_outcomes):
                     out = N
                 # second player to move wins
-                elif not {P, L} & up_outcomes and not {P, R} & down_outcomes:
+                elif not ({P, L} & up_outcomes) and not ({P, R} & down_outcomes):
                     out = P
                 # up wins no matter who moves first
-                elif {P, L} & up_outcomes and not {P,R} & down_outcomes:
+                elif ({P, L} & up_outcomes) and not ({P,R} & down_outcomes):
                     out = L
                 # down wins no matter who moves first
-                else:
+                elif not ({P, L} & up_outcomes)  and ({P,R} & down_outcomes):
                     out = R
             # memoize the outcome
             outcomes_store[nodes] = out
@@ -462,8 +462,8 @@ class UpDown(object):
         # recursively find the outcome of the game by determining 
         # the outcome of each of the games options (and memoizing).
         outcomes_store = {}
-        get_outcome(self, nodes)
-        return outcomes_store[nodes]
+        get_outcome(self, nodes, outcomes_store)
+        return outcomes_store
     
     def __neg__(self):                
         '''Returns the negative of the game.
