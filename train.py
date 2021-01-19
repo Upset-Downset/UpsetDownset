@@ -20,8 +20,8 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-def exploit_symmetries(training_triple, dim = gs.UNIV, num_samples=10):
-    '''Returns 'num_samples' symmetries of 'training_triple'.
+def symmetries(training_data, dim = gs.UNIV, num_samples=10):
+    '''Returns 'num_samples' symmetries of each example in 'training_data'.
     (A reindexing of node labels in any upset-downset game provides a
      symmetry of the gameboard.)
     
@@ -35,42 +35,77 @@ def exploit_symmetries(training_triple, dim = gs.UNIV, num_samples=10):
     num : int (nonnegative), optional
         The number of symmetries to take (sampled w/ repitition).
         The default is 10.
+
     Returns
     -------
     sym_train_data : list
         'num_samples' symmetries of 'training data'.
+
     ''' 
-    state, policy, value =  training_triple
     sym_train_data = []
-    
-    for _ in range(num_samples):
-        # get random permutation on dim # letters
-        p = np.random.permutation(dim)
-        # re-index nodes by permuting columns and rows
-        state_sym = state[:,:,p]
-        state_sym = state_sym[:,p,:]
-        # permute nodes in policy too!
-        policy_sym = policy[p]
-        sym_train_data.append((state_sym, policy_sym, value))
-        
+    for train_triple in training_data:
+        state, policy, value =  train_triple
+        for _ in range(num_samples):
+            # get random permutation on dim # letters
+            p = np.random.permutation(dim)
+            # re-index nodes by permuting columns and rows
+            state_sym = state[:,:,p]
+            state_sym = state_sym[:,p,:]
+            # permute nodes in policy too!
+            policy_sym = policy[p]
+            sym_train_data.append((state_sym, policy_sym, value)) 
+            
     return sym_train_data
 
+def evaluation(alpha_net, apprentice_net, num_nodes = gs.UNIV, num_plays=400, 
+               win_thrshld=0.55, temp = 0):
+    '''Plays 'num_plays' games of randomly generated upset-downset games
+    of size 'num'nodes' between 'alpha_net' and 'apprentice_net'. Returns 
+    wether 'apprentice_net' won at least 'win_thrshld' percentage of the games.
 
-def evaluation(alpha_net, apprentice_net, num_plays=400, win_thrshld=0.55, temp = 0):
-    '''
-    Takes two nets and evaluates if apprentice_net is better.
-    '''
+    Parameters
+    ----------
+    alpha_net : neural network
+        The current best model.
+    apprentice_net : neural network
+        the model currently training.
+    num_nodes : int, optional
+        the number of nodes in each game played during evaluation. The default
+        is gs.UNIV.
+    num_plays : int (nonnegative), optional
+        the number of games to play during evaluation. The default is 400.
+    win_thrshld : float, optional
+        between 0 and 1. The win percentage over all games played during 
+        evaluation needed for'apprentice_net' to be considered better than 
+        'alpha_net'. The default is 0.55.
+    temp : float (nonnegative), optional
+        controls the exploration in picking the next move. The default is 0.
 
+    Returns
+    -------
+    bool
+        True if 'apprentice_net' won at least 'win_thrshld' percentage of 
+        the games played during evaluation, and False otherwise.
+    apprentice_wins : TYPE
+        DESCRIPTION.
+
+    '''
+    # keep track of the models
     alpha = 0
     apprentice = 1
-    apprentice_wins = 0
-    actions = np.arange(gs.UNIV)
     
-    for i in range(num_plays):
-        print(i)
-        net_to_start = np.random.choice([alpha, apprentice])
+    # evaluation
+    apprentice_wins = 0
+    actions = np.arange(gs.UNIV) 
+    
+    for _ in range(num_plays):
+        # uniformly randomly choose which model plays first
+        # and which player moves first.
+        net_to_start = np.random.choice([alpha, apprentice])     
         up_or_down = np.random.choice([gs.UP, gs.DOWN])
-        G = rud.RandomGame(gs.UNIV, colored=True)
+        
+        # play a randomly generated game of upset-downset
+        G = rud.RandomGame(num_nodes, colored=True)
         cur_state = gs.to_state(G, to_move = up_or_down)
         cur_net = net_to_start
         move_count = 0
@@ -92,12 +127,12 @@ def evaluation(alpha_net, apprentice_net, num_plays=400, win_thrshld=0.55, temp 
             winner = net_to_start
         if winner == apprentice:
             apprentice_wins+=1
+            
     if (apprentice_wins/num_plays) > win_thrshld:
         return True, apprentice_wins
     else: 
         return False, apprentice_wins
-
-    
+  
 def loss(net_pol, net_vals, batch_probs, batch_vals):
     """
     Loss function to be used in training.    
@@ -108,8 +143,6 @@ def loss(net_pol, net_vals, batch_probs, batch_vals):
 
     return loss_policy_v, loss_value_v
         
-
-
 def train(apprentice_net=None, alpha_net=None,
           BATCH_SIZE=256,
           PLAY_EPISODES = 20,
@@ -166,7 +199,7 @@ def train(apprentice_net=None, alpha_net=None,
             first_move = random.choice([1,0])
             initial_state = gs.to_state(G, dim=gs.UNIV, to_move=first_move)
             train_data = mcts.self_play(initial_state, alpha_net, temp=TEMP, tmp_thrshld=TEMP_THRESH)
-            list(map(training_batch.append, train_data))
+            training_batch.extend(train_data)
         
         
         #Once the training batch gets large enough, move to training the apprentice_net
@@ -180,8 +213,7 @@ def train(apprentice_net=None, alpha_net=None,
         sum_loss = 0.0
         sum_value_loss = 0.0
         sum_policy_loss = 0.0
-        training_batch = [exploit_symmetries(train_tuple) for train_tuple in training_batch]
-        training_batch = [symmetry for symmetries in training_batch for symmetry in symmetries]
+        training_batch = symmetries(training_batch)
         np.random.shuffle(training_batch)
 
         while training_batch:
