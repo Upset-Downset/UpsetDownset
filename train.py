@@ -20,8 +20,8 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-def symmetries(training_data, dim = gs.UNIV, num_samples=10):
-    '''Returns 'num_samples' symmetries of each example in 'training_data'.
+def symmetries(training_batch, dim = gs.UNIV, num_samples=10):
+    '''Returns 'num_samples' symmetries of each example in 'training_batch'.
     (A reindexing of node labels in any upset-downset game provides a
      symmetry of the gameboard.)
     
@@ -38,12 +38,12 @@ def symmetries(training_data, dim = gs.UNIV, num_samples=10):
 
     Returns
     -------
-    sym_train_data : list
+    sym_training_batch : list
         'num_samples' symmetries of 'training data'.
 
     ''' 
-    sym_train_data = []
-    for train_triple in training_data:
+    sym_train_batch = training_batch
+    for train_triple in training_batch:
         state, policy, value =  train_triple
         for _ in range(num_samples):
             # get random permutation on dim # letters
@@ -53,7 +53,7 @@ def symmetries(training_data, dim = gs.UNIV, num_samples=10):
             state_sym = state_sym[:,p,:]
             # permute nodes in policy too!
             policy_sym = policy[p]
-            sym_train_data.append((state_sym, policy_sym, value)) 
+            sym_train_batch.append((state_sym, policy_sym, value)) 
             
     return sym_train_data
 
