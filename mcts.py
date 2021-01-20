@@ -220,6 +220,8 @@ def MCTS(root, net, device, num_iters = 800):
         root of tree.
     net : neural network
         model used for agent.
+    device : str
+        the device to run the model on ('cuda' if available, else 'cpu').
     num_iters : int (nonnegative), optional
         the number of iteratins of the search to be performed. 
         The default is 800.
@@ -290,6 +292,8 @@ def self_play(initial_state, net, device, temp=1, tmp_thrshld=3):
         encoded representation of an upset-downset game.
     net : neural network
         model used for agent.
+    device : str
+        the device to run the model on ('cuda' if available, else 'cpu').
     temp : float, optional
         controls exploration in move choice until the temperature 
         threshold has been surpassed. The default is 1.
