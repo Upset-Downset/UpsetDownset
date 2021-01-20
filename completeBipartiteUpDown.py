@@ -56,7 +56,7 @@ class CompleteBipartiteGame(ud.UpDown):
     ''' Subclass of UpDown for games of upset-downset on disjoint unions of
     directed (horizontally-oriented) complete bipartite graphs.
     '''
-    def __init__(self, graphs, colored = False):
+    def __init__(self, graphs, RGB = False):
         ''' Initializes an 'all green' game of upset-downset on a poset whose 
         Hasse diagram is a disjoint union of (horizontally-oriented) complete 
         bipartite graphs.
@@ -67,7 +67,7 @@ class CompleteBipartiteGame(ud.UpDown):
             ordered pairs (tuples or lists) of non-negative integers (m,n) each 
             representinting a distinct (horizontally-oriented) complete bipartite 
             having m nodes on top and n nodes on bottom.
-       colored : bool, optional
+       RGB : bool, optional
             determines the coloring. If 'True' the nodes will be colored 
             randomly. Otherwise, all nodes will be colored green.
             
@@ -79,7 +79,7 @@ class CompleteBipartiteGame(ud.UpDown):
         dag = complete_bipartite_dag(graphs)
         n = len(dag)
         colors= {i: random.choice([-1,0,1]) for i in range(n)} \
-            if colored else None
+            if RGB else None
         ud.UpDown.__init__(self, dag, coloring = colors, reduced = True)
         self.graphs = graphs
 

@@ -222,6 +222,7 @@ class UpDown(object):
                 first = input("Please choose 'Up' or 'Down'! ")
         else:
             first = random.choice(players)
+            print(first, 'will play first.')
         
         players.remove(first)
         second = players[0]
@@ -290,6 +291,8 @@ class UpDown(object):
                         time.sleep(1)    
                         u = agent_1(cur_pos, first)
                         cur_pos = cur_pos.up_play(u)
+                        print("The computer chose ", u)
+                        time.sleep(1)
                         clear_output(wait=True)
                         board = udp.UpDownPlot(initl_pos, marker=marker) 
                         board.leave_subgraph_fig(cur_pos)
@@ -311,7 +314,9 @@ class UpDown(object):
                     else:
                         print("The computer is choosing...")
                         time.sleep(1)
-                        u = agent_2(self, second)
+                        u = agent_2(cur_pos, second)
+                        print("The computer chose ", u)
+                        time.sleep(1)
                         cur_pos = cur_pos.down_play(u)
                         clear_output(wait=True)
                         board = udp.UpDownPlot(initl_pos, marker=marker) 
@@ -337,6 +342,8 @@ class UpDown(object):
                         print("The computer is choosing...")
                         time.sleep(1) 
                         u = agent_1(cur_pos, first)
+                        print("The computer chose ", u)
+                        time.sleep(1)
                         cur_pos = cur_pos.down_play(u)
                         clear_output(wait=True)
                         board = udp.UpDownPlot(initl_pos, marker=marker) 
@@ -360,6 +367,8 @@ class UpDown(object):
                         print("The computer is choosing...")
                         time.sleep(1)    
                         u = agent_2(cur_pos, second)
+                        print("The computer chose ", u)
+                        time.sleep(1)
                         cur_pos = cur_pos.up_play(u)
                         clear_output(wait=True)
                         board = udp.UpDownPlot(initl_pos, marker=marker) 
@@ -475,9 +484,8 @@ class UpDown(object):
         # recursively find the outcome of the game by determining 
         # the outcome of each of the games options (and memoizing).
         outcomes_store = {}
-        get_outcome(self, nodes, outcomes_store)
         
-        return outcomes_store[nodes]
+        return get_outcome(self, nodes, outcomes_store)
     
     def __neg__(self):                
         '''Returns the negative of the game.

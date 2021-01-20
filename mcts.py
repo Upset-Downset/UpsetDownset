@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-@author: Charles Petersen and Jamison Barsotti
+@author: Charlie Petersen and Jamison Barsotti
 """
 
 import gameState as gs
@@ -9,6 +9,7 @@ import numpy as np
 import copy
 import math
 import torch
+
 
 class PUCTNode(object):
     '''Abstract class for construction of a node in a polynomial 
@@ -26,7 +27,7 @@ class PUCTNode(object):
             default is None.
         action : int (nonnegative), optional
             edge chosen from parent node leading to 'self'. I.e., the action 
-            taken in the parnt state which lead to 'state'. If 
+            taken in the parent state which lead to 'state'. If 
             node is root, then action is NONE. The default is None.
 
         Returns
@@ -77,7 +78,7 @@ class PUCTNode(object):
             self.edges[a] = PUCTNode(next_state, parent=self, action=a)
         return self.edges[a]
     
-    def PUCT_action(self, c_puct = 1.0, eps = 0.25, eta = 0.03):
+    def PUCT_action(self, c_puct = 1.0, eps = 0.25, eta = 1.0):
         ''' Returns next action via the PUCT formula.
         
         Parameters
@@ -91,7 +92,7 @@ class PUCTNode(object):
         eta : float, optional
             constant between 0 and 1. Parameter of symmetric Dirichelt 
             distribution. Partially controls the level of exploration
-            from a root node. The default is 0.03.
+            from a root node. The default is 1.
 
         Returns
         -------
@@ -200,7 +201,7 @@ class PUCTNode(object):
         Returns
         -------
         self
-            PUCTNode.
+            PUCTNode
 
         '''
         self.parent = None
@@ -210,7 +211,7 @@ class PUCTNode(object):
             
                        
             
-def MCTS(root, net, num_iters = 400):
+def MCTS(root, net, device, num_iters = 800):
     '''Performs an MCTS from 'root' and returns 'root'.
 
     Parameters
@@ -221,7 +222,7 @@ def MCTS(root, net, num_iters = 400):
         model used for agent.
     num_iters : int (nonnegative), optional
         the number of iteratins of the search to be performed. 
-        The default is 400.
+        The default is 800.
 
     Returns
     -------
@@ -241,7 +242,7 @@ def MCTS(root, net, num_iters = 400):
         else:
             # query the net
             encoded_leaf_state = torch.from_numpy(
-                leaf.state).float().reshape(1, 4, gs.UNIV, gs.UNIV)
+                leaf.state).float().reshape(1, 4, gs.UNIV, gs.UNIV).to(device)
             probs, value = net(encoded_leaf_state)
             # expand and backup
             probs = probs.detach().cpu().numpy().reshape(-1)
@@ -253,10 +254,9 @@ def MCTS(root, net, num_iters = 400):
     return root
 
 def MCTS_policy(root, temp):
-    ''' Returns the probabilities of choosing an edge from 'root'. Derived 
-    from MCTS stats. Depending on 'temp', probabilities are either proprtional 
-    to the exponential edge visit count or deterministic, choosing the edge 
-    with highest visit count.
+    ''' Returns the probabilities of choosing an edge from 'root'. Depending 
+    on 'temp', probabilities are either proprtional to the exponential edge 
+    visit count or deterministic, choosing the edge with highest visit count.
     
     Parameters
     ----------
@@ -281,7 +281,7 @@ def MCTS_policy(root, temp):
             root.edge_visits)**(1/temp))
     return policy
 
-def self_play(initial_state, net, temp=1, tmp_thrshld=3):
+def self_play(initial_state, net, device, temp=1, tmp_thrshld=3):
     ''' Returns training data after self-play staring from 'initial state'.
     
     Parameters
@@ -291,7 +291,7 @@ def self_play(initial_state, net, temp=1, tmp_thrshld=3):
     net : neural network
         model used for agent.
     temp : float, optional
-        controls exploration in move choice until the temperatire 
+        controls exploration in move choice until the temperature 
         threshold has been surpassed. The default is 1.
     tmp_thrshld : int (nonnegative), optional
         controls the number of moves in play until actions are chosen 
@@ -314,7 +314,7 @@ def self_play(initial_state, net, temp=1, tmp_thrshld=3):
     
     # play until a terminal state is reached
     while not gs.is_terminal_state(root.state):
-        MCTS(root, net)
+        MCTS(root, net, device)
         if move_count <= tmp_thrshld:
             t = temp
         else:

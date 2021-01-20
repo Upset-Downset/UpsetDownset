@@ -46,7 +46,7 @@ def random_dag(n):
 class RandomGame(ud.UpDown):
     ''' Subclass of UpDown for randomly generated games of upset-downset.
     '''
-    def __init__(self, n, colored = False):
+    def __init__(self, n, RGB = False):
         ''' Initializes a game of upset-downset on a randomly generated 
         directed acyclic graph with 'n' nodes. Optionally colored, all green by default and randomly 
         otherwise.
@@ -55,7 +55,7 @@ class RandomGame(ud.UpDown):
         ----------
         n : int (nonnegative)
             number of nodes in the game
-        colored : bool, optional
+        RGB : bool, optional
             determines the coloring. If 'True' the nodes will be colored 
             randomly. Otherwise, all nodes will be colored green.
 
@@ -66,5 +66,5 @@ class RandomGame(ud.UpDown):
         '''
         dag = random_dag(n)
         colors = {i: random.choice([-1,0,1]) for i in range(n)} \
-            if colored else None
+            if RGB else None
         ud.UpDown.__init__(self, dag, coloring = colors, reduced = True)
