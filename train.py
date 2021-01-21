@@ -16,7 +16,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-device = 'cude' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def symmetries(train_data, dim = gs.UNIV, num_samples=10):
     '''Returns 'num_samples' symmetries of each example in 'train_data'.
