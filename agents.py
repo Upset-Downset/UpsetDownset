@@ -139,7 +139,3 @@ def approx_outcome(game, device=device):
         aprx_out = R
         
     return aprx_out
-    
-    
-    
-    return 
