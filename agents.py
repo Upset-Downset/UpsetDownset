@@ -40,7 +40,9 @@ def alpha_zero(game, player, device=device, search_iters=800):
     cur_player = gs.UP if player == 'Up' else gs.DOWN
     
     #load agent
-    agent = model.Net(input_shape=gs.STATE_SHAPE, actions_n=gs.UNIV).to(device)
+    agent = model.UpDownNet(
+        input_shape=gs.STATE_SHAPE, 
+        actions_n=gs.UNIV).to(device)
     agent.load_state_dict(torch.load('alpha_net.pt'))
     
     # encode game
@@ -105,7 +107,9 @@ def approx_outcome(game, device=device):
     N, P, L, R = 'Next', 'Previous', 'Up', 'Down'
     
     # load model
-    agent = model.Net(input_shape=gs.STATE_SHAPE, actions_n=gs.UNIV).to(device)
+    agent = model.UpDownNet(
+        input_shape=gs.STATE_SHAPE, 
+        actions_n=gs.UNIV).to(device)
     agent.load_state_dict(torch.load('alpha_net.pt'))
     
     # game state from each players perspective

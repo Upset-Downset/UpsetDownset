@@ -58,23 +58,23 @@ def symmetries(train_data, dim = gs.UNIV, num_samples=10):
     return sym_train_data
 
 def evaluation(alpha_net, apprentice_net, device, num_nodes = gs.UNIV, 
-               num_plays=400, num_iters=800, win_thrshld=0.55, temp = 0):
+               num_plays=400, search_iters=800, win_thrshld=0.55, temp = 0):
     '''Plays 'num_plays' games of randomly generated upset-downset games
     of size 'num'nodes' between 'alpha_net' and 'apprentice_net'. Returns 
     wether 'apprentice_net' won at least 'win_thrshld' percentage of the games.
     
     Parameters
     ----------
-    alpha_net : neural network
+    alpha_net : UpDownNet
         The current best model.
-    apprentice_net : neural network
+    apprentice_net : UpDownNet
         the model currently training.
     num_nodes : int, optional
         the number of nodes in each game played during evaluation. The default
         is gs.UNIV.
     num_plays : int (nonnegative), optional
         the number of games to play during evaluation. The default is 400.
-    num_iters : int (nonnegative), optional
+    search_iters : int (nonnegative), optional
         the number of iteratins of  MCTS to be performed for each turn. 
         The default is 800.
     win_thrshld : float, optional
@@ -116,9 +116,17 @@ def evaluation(alpha_net, apprentice_net, device, num_nodes = gs.UNIV,
         while not gs.is_terminal_state(cur_state):
             root = mcts.PUCTNode(cur_state)
             if cur_net == alpha:
-                mcts.MCTS(root, alpha_net, device)
+                mcts.MCTS(
+                    root, 
+                    alpha_net, 
+                    device, 
+                    num_iters=search_iters)
             else:
-                mcts.MCTS(root, apprentice_net, device)
+                mcts.MCTS(
+                    root, 
+                    apprentice_net, 
+                    device, 
+                    num_iters=search_iters)
             policy = mcts.MCTS_policy(root, temp)
             move = np.random.choice(actions, p=policy)
             cur_state = root.edges[move].state
@@ -163,15 +171,17 @@ def train(alpha_net=None,
 
     # initialize the alpha net 
     if alpha_net == None:
-        alpha_net = model.Net(input_shape=gs.STATE_SHAPE, 
-                              actions_n=gs.UNIV).to(device)
+        alpha_net = model.UpDownNet(
+            input_shape=gs.STATE_SHAPE,
+            actions_n=gs.UNIV).to(device)
         torch.save(alpha_net.state_dict(), '0alpha_net.pt')
     else:
         torch.save(alpha_net.state_dict(), '0alpha_net.pt')
     
     # initialize the apprentice net
-    apprentice_net = model.Net(input_shape=gs.STATE_SHAPE, 
-                               actions_n=gs.UNIV).to(device)
+    apprentice_net = model.UpDownNet(
+        input_shape=gs.STATE_SHAPE,
+        actions_n=gs.UNIV).to(device)
     apprentice_net.load_state_dict(torch.load('0alpha_net.pt'))
 
     # initialize the optimizer
@@ -250,7 +260,7 @@ def train(alpha_net=None,
                 alpha_net, 
                 apprentice_net, 
                 num_plays=EVALUATION_ROUNDS,
-                num_iters=MCTS_SEARCHES,
+                search_iters=MCTS_SEARCHES,
                 win_thrshld=BEST_NET_WIN_RATIO, 
                 temp=0)
             

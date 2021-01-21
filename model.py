@@ -12,9 +12,9 @@ import torch.nn as nn
 
 NUM_FILTERS = 64
 
-class Net(nn.Module):
+class UpDownNet(nn.Module):
     def __init__(self, input_shape, actions_n):
-        super(Net, self).__init__()
+        super(UpDownNet, self).__init__()
 
         self.conv_in = nn.Sequential(
             nn.Conv2d(input_shape[0], NUM_FILTERS, kernel_size=3, padding=1),

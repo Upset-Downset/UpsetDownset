@@ -218,12 +218,12 @@ def MCTS(root, net, device, num_iters = 800):
     ----------
     root : PUCTNode
         root of tree.
-    net : neural network
+    net : UpDownNet
         model used for agent.
     device : str
         the device to run the model on ('cuda' if available, else 'cpu').
     num_iters : int (nonnegative), optional
-        the number of iteratins of the search to be performed. 
+        the number of iterations of search to be performed. 
         The default is 800.
 
     Returns
@@ -290,7 +290,7 @@ def self_play(initial_state, net, device, temp=1, tmp_thrshld=3):
     ----------
     initial_state : 3D-numpy array of shape (4, UNIV, UNIV)
         encoded representation of an upset-downset game.
-    net : neural network
+    net : UpDownNet
         model used for agent.
     device : str
         the device to run the model on ('cuda' if available, else 'cpu').
