@@ -283,7 +283,7 @@ def MCTS_policy(root, temp):
             root.edge_visits)**(1/temp))
     return policy
 
-def self_play(initial_state, net, device, temp=1, tmp_thrshld=3):
+def self_play(initial_state, net, device, serach_iters=800, temp=1, tmp_thrshld=3):
     ''' Returns training data after self-play staring from 'initial state'.
     
     Parameters
@@ -294,6 +294,9 @@ def self_play(initial_state, net, device, temp=1, tmp_thrshld=3):
         model used for agent.
     device : str
         the device to run the model on ('cuda' if available, else 'cpu').
+    search_iters : int (nonnegative), optional
+         the number of iterations of  MCTS to be performed for each turn. 
+        The default is 800.
     temp : float, optional
         controls exploration in move choice until the temperature 
         threshold has been surpassed. The default is 1.
@@ -318,7 +321,7 @@ def self_play(initial_state, net, device, temp=1, tmp_thrshld=3):
     
     # play until a terminal state is reached
     while not gs.is_terminal_state(root.state):
-        MCTS(root, net, device)
+        MCTS(root, net, device, num_iters=search_iters)
         if move_count <= tmp_thrshld:
             t = temp
         else:
