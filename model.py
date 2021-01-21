@@ -9,12 +9,8 @@ Created on Mon Jan 11 09:14:13 2021
 import numpy as np
 import torch
 import torch.nn as nn
-import gameState
 
-
-OBS_SHAPE = (4, gameState.UNIV, gameState.UNIV)
 NUM_FILTERS = 64
-
 
 class Net(nn.Module):
     def __init__(self, input_shape, actions_n):
