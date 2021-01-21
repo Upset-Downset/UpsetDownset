@@ -10,7 +10,6 @@ import copy
 import math
 import torch
 
-
 class PUCTNode(object):
     '''Abstract class for construction of a node in a polynomial 
     upper confidence tree (PUCT).
