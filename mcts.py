@@ -283,7 +283,7 @@ def MCTS_policy(root, temp):
             root.edge_visits)**(1/temp))
     return policy
 
-def self_play(initial_state, net, device, serach_iters=800, temp=1, tmp_thrshld=3):
+def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=3):
     ''' Returns training data after self-play staring from 'initial state'.
     
     Parameters
