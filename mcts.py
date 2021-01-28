@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-@author: Charlie Petersen and Jamison Barsotti
+@author: Charles Petersen and Jamison Barsotti
 """
 
 import gameState as gs
@@ -144,8 +144,8 @@ class PUCTNode(object):
         return current
     
     def expand(self, probs, actions):
-        ''' Expand node: update is_expanded, actions and probs attributes 
-        in node.
+        ''' Expand node: update valid_actions, edge_probs and is_expanded
+        attributes.
         
         Parameters
         ----------
@@ -160,9 +160,9 @@ class PUCTNode(object):
         None.
 
         '''
-        self.is_expanded = True
         self.valid_actions = actions
         self.edge_probs = probs
+        self.is_expanded = True
     
     def backup(self, value):
         ''' Backup edge visit counts and action values in tree after MCTS.
@@ -208,9 +208,7 @@ class PUCTNode(object):
         return self         
             
             
-                       
-            
-def MCTS(root, net, device, num_iters = 800):
+def MCTS(root, net, device, search_iters):
     '''Performs an MCTS from 'root' and returns 'root'.
 
     Parameters
@@ -221,10 +219,8 @@ def MCTS(root, net, device, num_iters = 800):
         model used for agent.
     device : str
         the device to run the model on ('cuda' if available, else 'cpu').
-    num_iters : int (nonnegative), optional
+    search_iters : int (nonnegative)
         the number of iterations of search to be performed. 
-        The default is 800.
-
     Returns
     -------
     root : PUCTNode
@@ -232,7 +228,7 @@ def MCTS(root, net, device, num_iters = 800):
         from MCTS updated via backup. 
 
     '''
-    for _ in range(num_iters):
+    for _ in range(search_iters):
         leaf = root.find_leaf()
         # if leaf is a terminal state, i.e. previous player won
         if gs.is_terminal_state(leaf.state):
@@ -245,9 +241,10 @@ def MCTS(root, net, device, num_iters = 800):
             encoded_leaf_state = torch.from_numpy(
                 leaf.state).float().reshape(1, 4, gs.UNIV, gs.UNIV).to(device)
             probs, value = net(encoded_leaf_state)
-            # expand and backup
+            del encoded_leaf_state; torch.cuda.empty_cache()
             probs = probs.detach().cpu().numpy().reshape(-1)
             value = value.item()
+            # expand and backup\
             actions = gs.valid_actions(leaf.state)
             leaf.expand(probs, actions)
             leaf.backup(value)
@@ -281,7 +278,7 @@ def MCTS_policy(root, temp):
         policy = ((root.edge_visits)**(1/temp))/np.sum((
             root.edge_visits)**(1/temp))
     return policy
-
+    
 def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=3):
     ''' Returns training data after self-play staring from 'initial state'.
     
@@ -302,7 +299,6 @@ def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=
     tmp_thrshld : int (nonnegative), optional
         controls the number of moves in play until actions are chosen 
         deterministically via their visit count in MCTS. The default is 3.
-
     Returns
     -------
     train_data : list
@@ -320,7 +316,7 @@ def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=
     
     # play until a terminal state is reached
     while not gs.is_terminal_state(root.state):
-        MCTS(root, net, device, num_iters=search_iters)
+        MCTS(root, net, device, search_iters)
         if move_count <= tmp_thrshld:
             t = temp
         else:
@@ -342,4 +338,4 @@ def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=
     train_data = [(state, policy, value) for state, policy, value 
                   in zip(states, policies, values)]
     
-    return train_data        
+    return train_data  

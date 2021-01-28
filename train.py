@@ -199,16 +199,17 @@ def approx_outcome(game, apprentice_net, device):
     return aprx_out
         
 def train(alpha_net=None,
-          BATCH_SIZE=100,
-          PLAY_EPISODES=20,
+          device=device,
+          BATCH_SIZE=256,
+          PLAY_EPISODES=25,
           MCTS_SEARCHES=800,
           NUM_SYMMETRIES=10,
           LEARNING_RATE=0.1,
           MOMENTUM=0.9,
-          MIN_DATA_TO_TRAIN=100,
-          BEST_NET_WIN_RATIO=0.54,
+          MIN_DATA_TO_TRAIN=1000,
+          BEST_NET_WIN_RATIO=0.55,
           EVALUATE_EVERY_STEP=1,
-          EVALUATION_ROUNDS=10,
+          EVALUATION_ROUNDS=100,
           TEMP=1,
           TEMP_THRESH=2,
           NUM_UPDATES = np.inf):
@@ -234,6 +235,7 @@ def train(alpha_net=None,
         alpha_net = alpha_net
         torch.save(alpha_net.state_dict(), '0alpha_net.pt')
         print("Alpha Net loaded...")
+        
     # initialize the apprentice net
     apprentice_net = model.UpDownNet(
         input_shape=gs.STATE_SHAPE,
@@ -261,22 +263,24 @@ def train(alpha_net=None,
         
         # generate training data for training the apprentice_net 
         # from the alpha_net.
-        for _ in range(PLAY_EPISODES):
-            print('self-play : ', self_plays)
-            size = random.randint(1, gs.UNIV)
-            G = rud.RandomGame(size, RGB=True)
-            first_move = random.choice([gs.UP, gs.DOWN])
-            initial_state = gs.to_state(G, dim=gs.UNIV, to_move=first_move)
-            self_play_data = mcts.self_play(
-                initial_state, 
-                alpha_net, 
-                device, 
-                search_iters=MCTS_SEARCHES,
-                temp=TEMP, 
-                tmp_thrshld=TEMP_THRESH)
-            train_data.extend(self_play_data)
+        with torch.no_grad():  
+            alpha_net.eval()
+            for _ in range(PLAY_EPISODES):
+                print('self-play : ', self_plays)
+                size = random.randint(1, gs.UNIV)
+                G = rud.RandomGame(size, RGB=True)
+                first_move = random.choice([gs.UP, gs.DOWN])
+                initial_state = gs.to_state(G, dim=gs.UNIV, to_move=first_move)
+                self_play_data = mcts.self_play(
+                    initial_state, 
+                    alpha_net, 
+                    device, 
+                    search_iters=MCTS_SEARCHES,
+                    temp=TEMP, 
+                    tmp_thrshld=TEMP_THRESH)
+                train_data.extend(self_play_data)
             
-            self_plays +=1
+                self_plays +=1
            
         # once the amount of training data gets large enough
         # train the apprentice_net
@@ -292,8 +296,10 @@ def train(alpha_net=None,
         
         print("Training...")
         # train the apprentice net
+        train_step = 0
+        apprentice_net.train()
         while train_data:
-            print("taraining step : ", train_idx)
+            print("taraining step : ", train_step)
             # get training batch
             batch = train_data[:BATCH_SIZE]
             train_data = train_data[BATCH_SIZE:]
@@ -316,6 +322,8 @@ def train(alpha_net=None,
             
             loss.backward()
             optimizer.step()
+            
+            train_step+=1
         
         train_idx += 1
         
@@ -323,38 +331,44 @@ def train(alpha_net=None,
         # evaluate the apprentice net against the alpha_net. If the apprentice 
         # net wins more than BEST_NET_WIN_RATIO percentage of the games 
         # we update the alpha_net.
-        if train_idx % EVALUATE_EVERY_STEP == 0:
-            print("Evaluating nets...")
+        with torch.no_grad():
+            apprentice_net.eval()
+            if train_idx % EVALUATE_EVERY_STEP == 0:
+                print("Evaluating nets...")      
+                better_than_alpha = evaluation(
+                    alpha_net, 
+                    apprentice_net,
+                    device=device,
+                    num_plays=EVALUATION_ROUNDS,
+                    search_iters=MCTS_SEARCHES,
+                    win_thrshld=BEST_NET_WIN_RATIO, 
+                    temp=0)
             
-            better_than_alpha = evaluation(
-                alpha_net, 
-                apprentice_net,
-                device=device,
-                num_plays=EVALUATION_ROUNDS,
-                search_iters=MCTS_SEARCHES,
-                win_thrshld=BEST_NET_WIN_RATIO, 
-                temp=0)
-            
-            if better_than_alpha[0]:
-                
-                print("Apprentice is better than current alpha, sync")
-                
+            if better_than_alpha[0]:            
+                print("Apprentice is better than current alpha, sync")               
                 #update alpha net
                 torch.save(apprentice_net.state_dict(), 
                            str(best_idx) + 'alpha_net.pt')              
                 alpha_net.load_state_dict(
                     torch.load(str(best_idx) + 'alpha_net.pt'))
+                alpha_net.eval()
                 
                 best_idx += 1
                 
-            score = 0
-            for _ in range(EVALUATION_ROUNDS):
-                size = size = random.randint(1, gs.UNIV)
-                G = rud.RandomGame(size, RGB=True)
-                true_outcome = G.outcome()
-                approximate_outcome = approx_outcome(G, apprentice_net, device)
-                if true_outcome == approximate_outcome:
-                    score +=1
-            print('accuracy : ', score/EVALUATION_ROUNDS)
+            # check outcome prediction accuracy on games of random 
+            # size between 1 and gs.UNIV nodes
+            total_score = 0
+            for _ in range(10):
+                score = 0
+                for _ in range(EVALUATION_ROUNDS):
+                    size = size = random.randint(1, gs.UNIV)
+                    G = rud.RandomGame(size, RGB=True)
+                    true_outcome = G.outcome()
+                    approximate_outcome = approx_outcome(G, apprentice_net, device)
+                    if true_outcome == approximate_outcome:
+                        score +=1
+                score = score/EVALUATION_ROUNDS
+                total_score += score
+            print('averaged accuracy : ', total_score/10)
                 
 
