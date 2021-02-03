@@ -4,9 +4,9 @@
 @author: Charles Petersen and Jamison Barsotti
 """
 
-import multi_self_play
-import multi_train
-import multi_evaluation
+import selfPlay
+import train
+import evalPlay
 import utils
 
 
@@ -41,7 +41,7 @@ if __name__ == '__main__':
           train_iter, '\n')
         
         # self-play
-        multi_self_play.multiprocess_self_play(train_iter,
+        selfPlay.multiprocess_self_play(train_iter,
                                                num_processes=PROCESSES,
                                                total_plays=SELF_PLAYS,
                                                search_iters=SEARCHES,
@@ -49,14 +49,14 @@ if __name__ == '__main__':
                                                temp_thrshld=TEMP_THRSHLD)
         
         # train
-        multi_train.train(train_iter,
+        train.train(train_iter,
                           batch_size=BATCH_SIZE,
                           num_symmetries=SYMMETRIES,
                           learning_rate=LEARN_RATE,
                           momentum=MOMENTUM)
         
         # evaluation
-        multi_evaluation.multiprocess_evaluation(train_iter,
+        evalPlay.multiprocess_evaluation(train_iter,
                                                  num_processes=PROCESSES,
                                                  total_plays=EVAL_PLAYS,
                                                  search_iters=SEARCHES,
