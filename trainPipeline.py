@@ -42,25 +42,25 @@ if __name__ == '__main__':
         
         # self-play
         selfPlay.multiprocess_self_play(train_iter,
-                                               num_processes=PROCESSES,
-                                               total_plays=SELF_PLAYS,
-                                               search_iters=SEARCHES,
-                                               temp=TEMP,
-                                               temp_thrshld=TEMP_THRSHLD)
+                                        num_processes=PROCESSES,
+                                        total_plays=SELF_PLAYS,
+                                        search_iters=SEARCHES,
+                                        temp=TEMP,
+                                        temp_thrshld=TEMP_THRSHLD)
         
         # train
         train.train(train_iter,
-                          batch_size=BATCH_SIZE,
-                          num_symmetries=SYMMETRIES,
-                          learning_rate=LEARN_RATE,
-                          momentum=MOMENTUM)
+                    batch_size=BATCH_SIZE,
+                    num_symmetries=SYMMETRIES,
+                    learning_rate=LEARN_RATE,
+                    momentum=MOMENTUM)
         
         # evaluation
         evalPlay.multiprocess_evaluation(train_iter,
-                                                 num_processes=PROCESSES,
-                                                 total_plays=EVAL_PLAYS,
-                                                 search_iters=SEARCHES,
-                                                 win_thrshld=WIN_RATIO)
+                                         num_processes=PROCESSES,
+                                         total_plays=EVAL_PLAYS,
+                                         search_iters=SEARCHES,
+                                         win_thrshld=WIN_RATIO)
     
         
 
