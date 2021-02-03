@@ -88,7 +88,7 @@ def to_state(game, dim = UNIV, to_move = UP):
     return state
 
 def to_game(state):
-    '''Returns the upset-downset game from the encoded ''state'.
+    '''Returns the upset-downset game from the encoded 'state'.
     
     Parameters
     ----------
@@ -115,8 +115,15 @@ def to_game(state):
         upset[node] = 0
         upset = np.argwhere(upset).reshape(-1)
         dag[node] = list(upset)
+    
+    G = ud.UpDown(dag, coloring=colors)
+    
+    # change perspecive if its Downs turn!
+    cur_player = state[3,0,0]
+    if cur_player == DOWN:
+        G = -G
         
-    return ud.UpDown(dag, coloring = colors)
+    return G
 
 def take_action(state, a):
     ''' Returns the next state of the game 
@@ -192,8 +199,9 @@ def valid_actions(state):
     return np.nonzero(d)[0]
 
 def is_terminal_state(state):
-    ''' Returns wether current player has lost the game. (Check before current
-     player attemots to takes an action!)
+    ''' Returns wether current player has lost the game. I.e., a terminal 
+    state is a state in which the current player has no valid moves. (Check 
+    before current player attempts to take an action!)
 
     Parameters
     ----------
