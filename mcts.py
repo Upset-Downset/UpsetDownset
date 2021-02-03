@@ -279,63 +279,63 @@ def MCTS_policy(root, temp):
             root.edge_visits)**(1/temp))
     return policy
     
-def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=3):
-    ''' Returns training data after self-play staring from 'initial state'.
-    
-    Parameters
-    ----------
-    initial_state : 3D-numpy array of shape (4, UNIV, UNIV)
-        encoded representation of an upset-downset game.
-    net : UpDownNet
-        model used for agent.
-    device : str
-        the device to run the model on ('cuda' if available, else 'cpu').
-    search_iters : int (nonnegative), optional
-         the number of iterations of  MCTS to be performed for each turn. 
-        The default is 800.
-    temp : float, optional
-        controls exploration in move choice until the temperature 
-        threshold has been surpassed. The default is 1.
-    tmp_thrshld : int (nonnegative), optional
-        controls the number of moves in play until actions are chosen 
-        deterministically via their visit count in MCTS. The default is 3.
-    Returns
-    -------
-    train_data : list
-        list of orderd triples (state, policy, value) encountered 
-        during self play. For each state visited during self-play we 
-        also record the MCTS policy found at that state and the value of 
-        the state as determined by the outcome of the self-play from the 
-        current players perspective. We do not include terminal states.
-    '''
-    states = []
-    policies = []
-    move_count = 0
-    actions = np.arange(gs.UNIV)
-    root = PUCTNode(initial_state)
-    
-    # play until a terminal state is reached
-    while not gs.is_terminal_state(root.state):
-        MCTS(root, net, device, search_iters)
-        if move_count <= tmp_thrshld:
-            t = temp
-        else:
-            t = 0
-        policy = MCTS_policy(root, t)
-        move = np.random.choice(actions, p=policy)
-        states.append(root.state)
-        policies.append(policy)
-        root = root.edges[move]
-        root.to_root()
-        move_count += 1
-        
-    # update state values as seen from current players perspective
-    if move_count %2 == 0:
-        values = [(-1)**(i+1) for i in range(move_count)]
-    else:
-        values = [(-1)**i for i in range(move_count)]
-        
-    train_data = [(state, policy, value) for state, policy, value 
-                  in zip(states, policies, values)]
-    
-    return train_data  
+#def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=3):
+#    ''' Returns training data after self-play staring from 'initial state'.
+#    
+#    Parameters
+#    ----------
+#    initial_state : 3D-numpy array of shape (4, UNIV, UNIV)
+#        encoded representation of an upset-downset game.
+#    net : UpDownNet
+#        model used for agent.
+#    device : str
+#        the device to run the model on ('cuda' if available, else 'cpu').
+#    search_iters : int (nonnegative), optional
+#         the number of iterations of  MCTS to be performed for each turn. 
+#        The default is 800.
+#    temp : float, optional
+#        controls exploration in move choice until the temperature 
+#        threshold has been surpassed. The default is 1.
+#    tmp_thrshld : int (nonnegative), optional
+#        controls the number of moves in play until actions are chosen 
+#        deterministically via their visit count in MCTS. The default is 3.
+#    Returns
+#   -------
+#    train_data : list
+#        list of orderd triples (state, policy, value) encountered 
+#        during self play. For each state visited during self-play we 
+#        also record the MCTS policy found at that state and the value of 
+#        the state as determined by the outcome of the self-play from the 
+#        current players perspective. We do not include terminal states.
+#    '''
+#    states = []
+#    policies = []
+#    move_count = 0
+#    actions = np.arange(gs.UNIV)
+#    root = PUCTNode(initial_state)
+#    
+#    # play until a terminal state is reached
+#    while not gs.is_terminal_state(root.state):
+#        MCTS(root, net, device, search_iters)
+#        if move_count <= tmp_thrshld:
+#            t = temp
+#        else:
+#            t = 0
+#        policy = MCTS_policy(root, t)
+#        move = np.random.choice(actions, p=policy)
+#        states.append(root.state)
+#        policies.append(policy)
+#        root = root.edges[move]
+#        root.to_root()
+#        move_count += 1
+#        
+#    # update state values as seen from current players perspective
+#    if move_count %2 == 0:
+#        values = [(-1)**(i+1) for i in range(move_count)]
+#    else:
+#        values = [(-1)**i for i in range(move_count)]
+#        
+#    train_data = [(state, policy, value) for state, policy, value 
+#                  in zip(states, policies, values)]
+#    
+#    return train_data  
