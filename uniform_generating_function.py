@@ -90,22 +90,23 @@ def markov_step(X_t, n):
     # choose to move to the graph 'Z' created by removing it.
     # Else, probabilistically choose to move to the graph 
     # 'Y' created by adding it (as long as Y is acyclic).
-    if i in X_t[j]:
+    if j in X_t[i]:
         Z = copy.deepcopy(X_t)
-        Z[j].remove(i)
+        Z[i].remove(j)
         Z_class_card = class_card(Z)
         prob = min(1 , X_t_class_card / Z_class_card)
         X_t1 = np.random.choice([Z,X_t], p=[prob, 1-prob])
     else:
         #This adds the edge (i,j) if adding such an edge gives an acyclic graph.
         # Otherwise, it will return the same graph X_t.
-        Y = digraph.add_edge(X_t,(i,j))    
-        if Y == X_t:
-            X_t1 = X_t 
-        else:
+        Y = copy.deepcopy(X_t)
+        Y[i].append(j)
+        if digraph.is_acyclic(Y):
             Y_class_card = class_card(Y)
             prob = min(1 , X_t_class_card / Y_class_card)
             X_t1 = np.random.choice([Y,X_t], p=[prob, 1-prob])
+        else:
+            X_t1 = X_t 
     return X_t1
 
 def markov_chain(G, steps):
