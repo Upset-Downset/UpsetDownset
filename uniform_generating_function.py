@@ -56,7 +56,7 @@ def class_card(G):
     
     return 2**comp_sum
 
-def markov_step(X_t, n):
+def markov_step(X_t, cc, n):
     '''
     Computes one step in the markov chain generating a random DAG.
 
@@ -67,6 +67,12 @@ def markov_step(X_t, n):
         the t-th step in the markov chain  
     n : int
         number of nodes in X_t
+    cc : int
+        the class cardinality of the DAG 'X_t'.
+        [One should note that making the class_card computation
+         is very complex, but in a markov chain, the previous iteration
+         contains this calculation for 'X_t', therefore 
+         it doesn't need to be recalculated]
 
     Returns
     -------
@@ -81,35 +87,43 @@ def markov_step(X_t, n):
     
     #If i==j adding (i,j) will create a cyclic graph, so return X_t
     if i == j:
-        return X_t
+        return X_t, cc
     
-    #Compute the class cardinality of X_t
-    X_t_class_card = class_card(X_t)
+    X_t_class_card = cc
     
     #Check to see if the edge is in X_t, if it is, probabilistically 
     # choose to move to the graph 'Z' created by removing it.
     # Else, probabilistically choose to move to the graph 
     # 'Y' created by adding it (as long as Y is acyclic).
-    if j in X_t[i]:
+    if i in X_t[j]:
         Z = copy.deepcopy(X_t)
-        Z[i].remove(j)
+        Z[j].remove(i)
         Z_class_card = class_card(Z)
         prob = min(1 , X_t_class_card / Z_class_card)
-        X_t1 = np.random.choice([Z,X_t], p=[prob, 1-prob])
+        choice = np.random.choice(['z','x'], p=[prob, 1-prob])
+        if choice == 'z':
+            X_t1 = Z
+            cc = Z_class_card
+        else:
+            X_t1 = X_t
     else:
         #This adds the edge (i,j) if adding such an edge gives an acyclic graph.
         # Otherwise, it will return the same graph X_t.
-        Y = copy.deepcopy(X_t)
-        Y[i].append(j)
-        if digraph.is_acyclic(Y):
+        Y = digraph.add_edge(X_t,(i,j))    
+        if Y == X_t:
+            X_t1 = X_t 
+        else:
             Y_class_card = class_card(Y)
             prob = min(1 , X_t_class_card / Y_class_card)
-            X_t1 = np.random.choice([Y,X_t], p=[prob, 1-prob])
-        else:
-            X_t1 = X_t 
-    return X_t1
+            choice = np.random.choice(['y','x'], p=[prob, 1-prob])
+            if choice == 'y':
+                X_t1 = Y
+                cc = Y_class_card
+            else:
+                X_t1 = X_t
+    return X_t1, cc
 
-def markov_chain(G, steps):
+def markov_chain(G, steps, cc=None):
     '''
     Performs steps number of markov chain steps from the DAG 'G' and returns
     the final DAG 'H' in the chain. *DOES NOT MUTATE G*
@@ -120,7 +134,9 @@ def markov_chain(G, steps):
         adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
     steps : int
-        number of steps in the markov chain.
+        number of steps in the markov chain. 
+    cc: int
+        the class cardinality of the DAG 'G'. If None, it will compute it
 
     Returns
     -------
@@ -130,13 +146,18 @@ def markov_chain(G, steps):
         DAG  'G'.
 
     '''
-    H = copy.deepcopy(G)
     n = len(G.keys())
+    H = copy.deepcopy(G)
+    if cc == None:
+        H_class_card = class_card(H)
+    else:
+        H_class_card = cc
+
     for _ in range(steps):
-        H = markov_step(H,n)
+        H, H_class_card = markov_step(H, H_class_card, n)
     return H
 
-def almost_uniform_random_graph(n, steps_exp=2, alpha=0, X_0=None):
+def almost_uniform_random_graph(n, steps_exp=2, alpha=0, X_0=None, cc=None):
     '''
     Generate a random DAG (almost uniformly) on n nodes using the markov process described
     by Patryk Kozieł and Małgorzata Sulkowska.
@@ -167,7 +188,14 @@ def almost_uniform_random_graph(n, steps_exp=2, alpha=0, X_0=None):
     '''
     if X_0 == None:
         X_0 = {i:[] for i in range(n)}
-    G = markov_chain(X_0, int(n**steps_exp + alpha))
+        X_0_class_card = 1
+    else:
+        if cc == None:
+            X_0_class_card = class_card(X_0)
+        else:
+            X_0_class_card = cc
+            
+    G = markov_chain(X_0, int(n**steps_exp + alpha), cc=X_0_class_card)
     return G
 
     

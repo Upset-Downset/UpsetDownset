@@ -119,6 +119,36 @@ def number_of_edges(G):
     '''
     return sum(len(G[v]) for v in G)
 
+def add_edge(G, edge):
+    ''' Returns the graph 'G + e' where 'e' is the edge i -> j (edge = (i,j)) ONLY if i and j are
+    nodes in 'G' and the graph 'G + e' is acyclic. 
+
+    Parameters
+    ----------
+    G : dict
+        adjacency representation of a directed graph. (Adjacency lists keyed 
+        by node.)
+    edge : tuple
+        ordered pair (i,j) representing the edge i -> j.
+
+    Returns
+    -------
+    H : dict
+        H is the adjacency representation of 
+        'G + e' where e is the edge i -> j as long
+        as i and j are nodes in 'G' and 'G + e' is acyclic.
+        Otherwise H = G.
+    '''
+    i, j = edge
+    if i in G.keys() and j in G.keys():
+        H = copy.deepcopy(G)
+        H[j].append(i)
+        if not is_acyclic(H):
+            H = G
+    else:
+        H = G
+    return H
+
 def sinks(G):
     ''' Returns all sink nodes in the directed graph 'G'.
     
@@ -532,5 +562,7 @@ def hasse_layout(G):
             prev_level_left_x = level_left_x
             prev_level_size = level_size  
     return hasse_pos
+
+
 
     
