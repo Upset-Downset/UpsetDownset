@@ -237,6 +237,7 @@ class UpDown(object):
         # fig_info contains various dicts that point to specific
         # objects in our figure. These are used to remove
         # these objects from the figure as the game progresses
+        clear_output(wait=True)
         board = udp.UpDownPlot(initl_pos, marker=marker)                     
         plt.pause(0.01)
         
@@ -276,7 +277,7 @@ class UpDown(object):
                 if i % 2 == 0:                  
                     if agent_1 == None:
                         u = int(input(first + 
-                                      ", choose a Blue or Green node: "))
+                                      ", choose a node: "))
                         while not (u in first_options):
                             print(u, " is not a valid choice.")
                             u = int(input(first + 
@@ -301,7 +302,7 @@ class UpDown(object):
                 else:
                     if agent_2 == None:
                         u = int(input(second + 
-                                      ", choose a Red or Green node: "))
+                                      ", choose a node: "))
                         while not (u in second_options):
                             print(u, " is not a valid choice.")
                             u = int(input(second + 
@@ -328,7 +329,7 @@ class UpDown(object):
                 if i % 2 == 0:
                     if agent_1 == None:
                         u = int(input(first + 
-                                      ", choose a Red or Green node: "))
+                                      ", choose a node: "))
                         while not (u in first_options):
                             print(u, " is not a valid choice.")
                             u = int(input(first + 
@@ -353,7 +354,7 @@ class UpDown(object):
                 else:
                     if agent_2 == None:
                         u = int(input(second + 
-                                      ", choose a Blue or Green node: "))
+                                      ", choose a node: "))
                         while not (u in second_options):
                             print(u, " is not a valid choice.")
                             u = int(input(second + 
