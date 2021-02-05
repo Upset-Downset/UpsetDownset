@@ -15,10 +15,10 @@ Goal: develop and train an machine learning system that learns to play upset-dow
     
 Contents: To be added...
 
-TO DO LIST: (2/5/21)
+TO-DO LIST: (2/5/21)
 
     - Sufficiently abstract the UpDownNet: input block, res blocks and output block?
-    - Implement uniform poset generation into randomUpDown
+    - Implement uniform poset generation into randomUpDown.
     - Setup code to save and plot training data: training loss, policy loss, value loss,
     evaluation score...
     - Should we store all teaing data (self_play_data, eval_data, model_data) in a folder
