@@ -8,14 +8,15 @@ by David Silver Et Al. does a great job explaining the architecture of
 the model, the blog https://dylandjian.github.io/alphago-zero/ helped us 
 understand the syntax needed to implement the model in PyTorch.
 """
+import gameState as gs
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 # game state variables
-STATE_SHAPE = (4,10,10) # the shape of an encoded game state
-NUM_ACTIONS = 10        # the number of 'possible' actions available
+#STATE_SHAPE = (4,10,10) # the shape of an encoded game state
+#NUM_ACTIONS = 10        # the number of 'possible' actions available
 
 # network architecture variables
 NUM_FILTERS = 64    # the number of filters in the input and residual blocks
@@ -154,9 +155,9 @@ class ValueHead(nn.Module):
 # the full network architecture     
 class AlphaZeroNet(nn.Module):
     def __init__(self,
-                 in_channels=STATE_SHAPE[0],
-                 board_shape=STATE_SHAPE[1:],
-                 num_actions=NUM_ACTIONS,
+                 in_channels=gs.STATE_SHAPE[0],
+                 board_shape=gs.STATE_SHAPE[1:],
+                 num_actions=gs.UNIV,
                  num_res_blocks=NUM_RES_BLOCKS,
                  num_filters=NUM_FILTERS,
                  num_pol_filters=NUM_POL_FILTERS,

@@ -228,15 +228,17 @@ def load_play_data(play_type, train_iter):
             play_data.append(data)
     return play_data
 
-def get_latest_markov(prcs_id=0):
+def get_latest_markov(prcs_id, train_iter):
     ''' Returns the last DAG (transitively reduced...) produced in the markov 
     chain taking place in process 'prcs_id'.
 
     Parameters
     ----------
-    prcs_id : int (nonnegative), optional
+    prcs_id : int (nonnegative),
         the process from which to continue the markov chain from where it 
-        left off. The default is 0.
+        left off.
+    train_iter : int (nonnegative)
+        the current iteration of the main training pipeline.
 
     Returns
     -------
@@ -247,22 +249,24 @@ def get_latest_markov(prcs_id=0):
 
     '''
     # get most recent training iteration
-    train_iter = latest_training_iteration()
+    if train_iter == 1:
+        DAG = {i:[] for i in range(gs.UNIV)}
+    else:
+        train_iter = latest_training_iteration()
     
-    # get path to most recent data
-    search_path = f'./train_data/self_play_data/iter_{train_iter}'
-    files = glob.glob(
-        f'{search_path}/self_play_iter{train_iter}_prcs{prcs_id}*')
-    most_recent = max(files, key=os.path.getctime)
-    print(most_recent)
-    # unpickle most recent play data
-    file  = open(most_recent, 'rb')
-    data = pickle.load(file)
-    file.close()
+        # get path to most recent data
+        search_path = f'./train_data/self_play_data/iter_{train_iter}'
+        files = glob.glob(
+            f'{search_path}/self_play_iter{train_iter}_prcs{prcs_id}*')
+        most_recent = max(files, key=os.path.getctime)
+        # unpickle most recent play data
+        file  = open(most_recent, 'rb')
+        data = pickle.load(file)
+        file.close()
     
-    # get initial DAG from most recent play data
-    game_state = data[0][0]
-    game = gs.to_game(game_state)
-    DAG = game.dag
+        # get initial DAG from most recent play data
+        game_state = data[0][0]
+        game = gs.to_game(game_state)
+        DAG = game.dag
     
-    return DAG
+        return DAG

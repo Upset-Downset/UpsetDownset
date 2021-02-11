@@ -57,12 +57,10 @@ def self_play(alpha_net,
 
     '''
     actions = np.arange(gs.UNIV)
+    state_generator = gs.initial_state(prcs_id, train_iter)
     
     for k in range(num_plays):
-        #size = np.random.choice(np.arange(1,gs.UNIV+1))
-        G = rud.RandomGame(gs.UNIV, RGB=RGB)
-        first_move = np.random.choice([gs.UP, gs.DOWN])
-        initial_state = gs.to_state(G, to_move=first_move)
+        initial_state = next(state_generator)
         root = mcts.PUCTNode(initial_state)
         states = []
         policies = []

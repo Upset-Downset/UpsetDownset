@@ -65,20 +65,17 @@ def evaluation(alpha_net,
     # evaluation
     apprentice_wins = 0
     actions = np.arange(gs.UNIV) 
-    
+    state_generator = gs.initial_state(prcs_id, train_iter)
     for k in range(num_plays):
         
         #store states encountered
         states = []
         
         # uniformly randomly choose which model plays first
-        # and which player moves first.
         net_to_start = np.random.choice([alpha, apprentice])     
-        up_or_down = np.random.choice([gs.UP, gs.DOWN])
         
         # play a randomly generated game of upset-downset
-        G = rud.RandomGame(gs.UNIV, RGB)
-        cur_state = gs.to_state(G, to_move = up_or_down)
+        cur_state = next(state_generator)
         states.append(cur_state)
         cur_net = net_to_start
         move_count = 0

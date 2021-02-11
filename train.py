@@ -88,12 +88,9 @@ def train(replay_buffer,
     '''
     
     #initialze apprentice net and load paramaters 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    print(f'Loading apprentice model for training on device : {device}...')
-    
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'   
+    print(f'Loading apprentice model for training on device : {device}...')    
     apprentice_net = utils.load_model('apprentice', device)
-    apprentice_net.train()
     
     # initialize optimizer
     print('Initializing SGD optimizer...')   
@@ -106,13 +103,16 @@ def train(replay_buffer,
     print('Loading train data into the replay buffer..')   
     train_data = utils.load_play_data('self_play', train_iter)
     replay_buffer.extend(train_data)
+    print(f'{len(train_data)} training examples added to the buffer.')
+    print(f'Buffer size : {len(replay_buffer)}')
     
     # train the apprentice net 
     print(f'Performing {epochs} training steps on batches of' \
-          f' size {batch_size}...\n')
+          f' size {batch_size} @ {num_symmetries} per training example...\n')
     
     epoch = 0
-    total_loss = 0  
+    total_loss = 0
+    apprentice_net.train()
     for _ in range(epochs):
         # get training batch (uniformly at random w/ repoacement)
         batch = random.choices(replay_buffer, k=batch_size)
