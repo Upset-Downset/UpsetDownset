@@ -33,7 +33,6 @@ TO DO LIST: (2/5/21)
         * overview of project
         * where project stands/ what's next.
         * brief description of each module
-        
 
 TO DO LIST: (2/11/21)
 
@@ -60,5 +59,21 @@ TO DO LIST: (2/11/21)
     or down_play() methods) this info can be passed to the function which 
     generates the relations so as to keep track of node labels in the option... me thinks this should work, even though it sound ugly and i have'nt 
     gone through the deatils.
+    
+    ****** There is a new branch called charlespetersen-patch-1:
+    ****** This branch contains:
 
+        - changed the name of the module housing the functions for the Markov process to randomDag.py
+        - updated randomUpDown.py to use the Markov process to produce random games. 
+        - updated gameState.py to include a generator which produces random games via a continuing Markov process.The generator has not been
+        implemented in self-play or evaluation yet.
+        - in utils.py I've added a function to find the latest dag(though transitively reduced) prided in the Markov chain taking place in 
+        whatever proceed of multiprocess
+        - in trainPipeine.py and train.py I've implemented a replay buffer for training. 
+        - in selfPlay.py, evalPlay.py, utils.py, train.py and trainPipeline.py I implelented f-strings everywhere.
+        - began working on an abstraction of the functions contained in  gameState.py to a  class. This module is named `gameState_abstract.py`.
+        - sufficiently abstracted the model to have an easily changeable architecture. I have not implemented the new version of the model in any 
+        files where it is needed. The module containing the abstracted model is in `model_abstract.py`.
+        - updated utils.py and all necessary modules so that all directories/files produced during training will now be kept in a single 
+        directory called 'train_data'.
 
