@@ -5,7 +5,6 @@
 """
 
 import gameState as gs 
-import model
 import utils
 
 import numpy as np
@@ -13,7 +12,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-import os
+import random
+
 
 def symmetries(train_data, num_symmetries):
     '''Returns 'num_samples' symmetries of each example in 'train_data'.
@@ -54,7 +54,9 @@ def symmetries(train_data, num_symmetries):
             
     return sym_train_data
 
-def train(train_iter,
+def train(replay_buffer,
+          train_iter,
+          epochs,
           batch_size=256,
           num_symmetries=10,
           learning_rate=0.1,
@@ -88,41 +90,34 @@ def train(train_iter,
     #initialze apprentice net and load paramaters 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    print('loading apprentice model for training on device :', device)
+    print(f'Loading apprentice model for training on device : {device}...')
     
-    apprentice_net = utils.get_model('apprentice', device)
+    apprentice_net = utils.load_model('apprentice', device)
     apprentice_net.train()
     
     # initialize optimizer
-    print('Initializing SGD optimizer...')
-    
+    print('Initializing SGD optimizer...')   
     optimizer = optim.SGD(
         apprentice_net.parameters(),
         lr=learning_rate,
         momentum=momentum)
-        
-    #print('Loading self-play data: iteration', index)
-    print('Loading training data...')
     
+    # get self-play data
+    print('Loading train data into the replay buffer..')   
     train_data = utils.load_play_data('self_play', train_iter)
-    
-    # get symmetries of training data and shuffle 
-    print('Preparing', num_symmetries, 
-          'symmetries per training example @', 
-          len(train_data), 'training examples...')  
-    
-    train_data = symmetries(train_data, num_symmetries=num_symmetries)
-    np.random.shuffle(train_data) 
+    replay_buffer.extend(train_data)
     
     # train the apprentice net 
-    print('Training apprentice on batches of size', batch_size, 'in progress...')
+    print(f'Performing {epochs} training steps on batches of' \
+          f' size {batch_size}...\n')
     
     epoch = 0
     total_loss = 0  
-    while train_data:
-        # get training batch
-        batch = train_data[:batch_size]
-        train_data = train_data[batch_size:]
+    for _ in range(epochs):
+        # get training batch (uniformly at random w/ repoacement)
+        batch = random.choices(replay_buffer, k=batch_size)
+        # get symmetries
+        batch = symmetries(batch, num_symmetries=num_symmetries)
         batch_states, batch_probs, batch_values = zip(*batch)
             
         # query the apprentice net
@@ -150,20 +145,13 @@ def train(train_iter,
         
         # get rolling avg loss
         total_loss += loss.item()     
-        if epoch % 500 == 0:
-            print('Average loss over', epoch, 'epochs :', 
-                  total_loss/epoch)
-            
-    # get average loss over all epochs       
-    print('Average loss over', epoch, 'epochs :', 
-                  total_loss/epoch)
+        if epoch % 10 == 0:
+            print(f'Average loss over {epoch} epochs : {total_loss/epoch}')
     
     # save model parameters  
-    print('Saving apprentice model paramaters...\n')
+    print('Saving apprentice model parameters...\n')
     
-    filename = str(train_iter) + '_apprentice_net.pt'
-    path = os.path.join('./model_data/apprentice_data/', filename)
-    torch.save(apprentice_net.state_dict(), path)  
+    utils.save_model(apprentice_net, 'apprentice', train_iter) 
     
     del apprentice_net; torch.cuda.empty_cache()
         

@@ -6,7 +6,6 @@
 import gameState as gs
 import mcts
 import randomUpDown as rud
-import model
 import utils
 
 import numpy as np
@@ -21,7 +20,7 @@ def evaluation(alpha_net,
                num_plays,
                search_iters,
                train_iter,
-               proc_id, 
+               prcs_id, 
                shared_results,
                RGB=True,
                temp = 0):
@@ -115,7 +114,7 @@ def evaluation(alpha_net,
         eval_data = [start, states]  
         utils.pickle_play_data('evaluation',
                                eval_data, 
-                               proc_id, 
+                               prcs_id, 
                                k, 
                                train_iter)
             
@@ -123,11 +122,11 @@ def evaluation(alpha_net,
     # append results to shared list
     shared_results.append(apprentice_wins)
 
-def multiprocess_evaluation(train_iter,
-                        num_processes=4,
-                        total_plays=400,
-                        search_iters=800,
-                        win_thrshld=0.55):
+def multi_evaluation(train_iter,
+                     num_processes=4,
+                     total_plays=400,
+                     search_iters=800,
+                     win_thrshld=0.55):
     ''' Wrapper for performing multi-process evaluation-play.
     
     Parameters
@@ -155,37 +154,35 @@ def multiprocess_evaluation(train_iter,
     '''
     print('Preparing multi-process evaluation...')
     
+    # create directory for pickling
+    if not os.path.isdir(f'./train_data/evaluation_data/iter_{train_iter}'):
+        if not os.path.isdir('./train_data/evaluation_data'):
+            os.mkdir('./train_data/evaluation_data')
+        os.mkdir(f'./train_data/evaluation_data/iter_{train_iter}')
+    
     # check if there are enough CPUs
     if num_processes > mp.cpu_count():
         num_processes = mp.cpu_count()
-        print('The number of processes exceeds the number of CPUs.' +
-              ' Setting num_processes to %d' % num_processes)
+        print('The number of processes exceeds the number of CPUs.' \
+              f'Setting num_processes to {num_processes}.')
             
     # evenly split plays per process   
-    num_plays = total_plays//num_processes
-    
-    # create directory for saving this iterations pickeled evaluation data
-    if not os.path.isdir('./evaluation_data/iter_%d' % train_iter):
-        if not os.path.isdir('./evaluation_data'):
-            os.mkdir('./evaluation_data')
-        os.mkdir('./evaluation_data/iter_%d' % train_iter)
-        
+    num_plays = total_plays//num_processes        
         
     # initialze alpha net/apprentice_net,load paramaters and place 
     # in evaluation mode
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' 
-      
-    print('Initializing alpha and apprentice models on device :', device, '...') 
-    
-    alpha_net = utils.get_model('alpha', device)
-    apprentice_net = utils.get_model('apprentice', device)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'      
+    print('Initializing alpha and apprentice models on' \
+          f' device : {device}...')    
+    alpha_net = utils.load_model('alpha', device)
+    apprentice_net = utils.load_model('apprentice', device)
     alpha_net.eval()
     apprentice_net.eval()
     
     if num_processes > 1:  
         
-        print('%d evaluation processes in progress @' % num_processes, 
-              str(num_plays), 'games per process...')
+        print(f'{num_processes} evaluation processes in progress @' \
+              f'{num_plays} games per process...')
         
         # a manager to collect results from all processes
         manager = mp.Manager()
@@ -213,11 +210,11 @@ def multiprocess_evaluation(train_iter,
         # collect the results        
         apprentice_wins = sum(shared_results)
             
-        print('Finished %d games of multi-process evaluation.' % total_plays)
+        print(f'Finished {total_plays} games of multi-process evaluation.')
         
     else:        
         
-        print('%d games of evaluation in progress... '% total_plays)
+        print(f'{total_plays} games of evaluation in progress...')
         
         results = []
         with torch.no_grad():
@@ -230,32 +227,24 @@ def multiprocess_evaluation(train_iter,
                        0,
                        results,
                        RGB=True,
-                       search_iters=800, 
                        temp = 0)
             
         # get the results        
         apprentice_wins = results[-1] 
         
-        print('Finished %d games of evaluation.' % total_plays)
+        print(f'Finished {total_plays} games of evaluation.') 
     
-    if apprentice_wins/(num_processes*num_plays) > win_thrshld:
-        
-        print('The apprentice model beat the alpha', 
-              apprentice_wins, 'games to ' + 
-              str((num_plays*num_processes)-apprentice_wins) +
-              '.')
-        print('Updating the alpha models parameters...\n')
+    #results
+    print(f'The apprentice model won {apprentice_wins} games ' \
+          f'and alpha won {(num_plays*num_processes)-apprentice_wins}.')
+                  
+    if apprentice_wins/(num_processes*num_plays) > win_thrshld:   
+        print('Updating the alpha models parameters...')
         
         # save model parameters  
-        filename = str(train_iter) + '_alpha_net.pt'
-        path = os.path.join('./model_data/alpha_data/', filename)
-        torch.save(apprentice_net.state_dict(), path)
-    
-    else:
-        print('The apprentice model won',
-              apprentice_wins, 'games and alpha won ' +
-              str((num_processes*num_plays)-apprentice_wins) + '.\n')
+        utils.save_model(apprentice_net, 'alpha', train_iter) 
         
     del alpha_net; del apprentice_net; torch.cuda.empty_cache()
-        
+    print('')
+    
     return apprentice_wins

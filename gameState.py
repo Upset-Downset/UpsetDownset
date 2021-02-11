@@ -4,10 +4,14 @@
 @author: Charles Petersen and Jamison Barsotti
 """
 
-import numpy as np
 import digraph
 import upDown as ud
+import randomUpDown as rud
+import utils
+
+import numpy as np
 import copy
+
 
 # universe size our games live in: the maximum number of nodes 
 # a game our model can play
@@ -215,3 +219,23 @@ def is_terminal_state(state):
 
     '''
     return True if len(valid_actions(state)) == 0 else False
+
+
+def initial_state(prcs_id=0):
+        '''Generator of random game states.
+
+        Returns
+        -------
+        3-D Numpy array
+            an (almost) uniformly randomly generated encoded game of 
+            upset-downset with 'Up'/'Down' chosen uniformly randomly to start. 
+            (See randomUpDown and/or randomDag.)
+
+        '''
+        start = utils.get_latest_markov(prcs_id)
+        while True:
+            random_player = np.random.choice([UP, DOWN])
+            random_game = rud.RandomGame(UNIV, RGB=True, start=start)
+            random_state = to_state(random_game, to_move=random_player)
+            start = random_game.dag
+            yield random_state

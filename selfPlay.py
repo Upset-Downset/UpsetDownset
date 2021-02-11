@@ -6,7 +6,6 @@
 import gameState as gs
 import mcts
 import randomUpDown as rud
-import model
 import utils
 
 import numpy as np
@@ -20,7 +19,7 @@ def self_play(alpha_net,
               num_plays,
               search_iters,
               train_iter,
-              proc_id,  
+              prcs_id,  
               temp, 
               temp_thrshld,
               RGB=True):
@@ -40,7 +39,7 @@ def self_play(alpha_net,
         the number of iteratins of  MCTS to be performed for each turn. 
     train_iter : int (nonnegative)
         the current iteration of the main training pipeline
-    proc_id : int (nonnegative)
+    prcs_id : int (nonnegative)
         the process index in multiprocess
     temp : float (nonnegative), optional
         controls the exploration in picking the next move.
@@ -96,16 +95,16 @@ def self_play(alpha_net,
         # pickle self-play data
         utils.pickle_play_data('self_play',
                                train_data, 
-                               proc_id, 
+                               prcs_id, 
                                k, 
                                train_iter)
 
-def multiprocess_self_play(train_iter,
-                           num_processes=4,
-                           total_plays=5000,
-                           search_iters=800,
-                           temp=1,
-                           temp_thrshld=2):
+def multi_self_play(train_iter,
+                    num_processes=4,
+                    total_plays=5000,
+                    search_iters=800,
+                    temp=1,
+                    temp_thrshld=2):
     ''' Wrapper for performing multi-process self-play.
     
     Parameters
@@ -134,36 +133,33 @@ def multiprocess_self_play(train_iter,
     '''
     print('Preparing multi-process self-play...')
     
+    # create directory for pickling
+    if not os.path.isdir(f'./train_data/self_play_data/iter_{train_iter}'):
+        if not os.path.isdir('./train_data/self_play_data'):
+            os.mkdir('./train_data/self_play_data')
+        os.mkdir(f'./train_data/self_play_data/iter_{train_iter}')
+    
     # check if there are enough CPUs
     if num_processes > mp.cpu_count():
         num_processes = mp.cpu_count()
-        print('The number of processes exceeds the number of CPUs.' +
-              ' Setting num_processes to %d' % num_processes)
+        print('The number of processes exceeds the number of CPUs. ' \
+              f'Setting num_processes to {num_processes}.')
             
     # evenly split plays per process   
     num_plays = total_plays//num_processes
-    
-    # create directory for saving this iterations pickeled self-play data
-    if not os.path.isdir('./self_play_data/iter_%d' % train_iter):
-        if not os.path.isdir('./self_play_data'):
-            os.mkdir('./self_play_data')
-        os.mkdir('./self_play_data/iter_%d' % train_iter)
-        
-        
+            
     #initialze alpha net,load paramaters and place in evaluation mode
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' 
-      
-    print('Initializing alpha model on device :', device, '...') 
-    
-    alpha_net = utils.get_model('alpha', device)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'      
+    print(f'Initializing alpha model on device : {device}...')   
+    alpha_net = utils.load_model('alpha', device)
     alpha_net.eval()
     
     # self-play
     if num_processes > 1:
         
-        print('%d self-play processes in progress @' % num_processes, 
-              str(num_plays), 'games per process...')
-        
+        print(f'{num_processes} self-play processes in progress @ ' \
+              f'{num_plays} games per process...')
+            
         # start processes
         mp.set_start_method("spawn",force=True)
         processes = []       
@@ -183,10 +179,10 @@ def multiprocess_self_play(train_iter,
             for p in processes:
                 p.join()
             
-        print('Finished %d games of multi-process self-play.\n' % total_plays)
+        print(f'Finished {total_plays} games of multi-process self-play.\n')
     
     else:
-        print('%d games of self-play in progress...' % total_plays)
+        print(f'{total_plays} games of self-play in progress...')
         with torch.no_grad():
             self_play(alpha_net, 
                       device, 
@@ -197,7 +193,6 @@ def multiprocess_self_play(train_iter,
                       temp,
                       temp_thrshld)
             
-        print('Finished %d games of self-play.\n' % total_plays)
+        print(f'Finished {total_plays} games of self-play.\n')
         
     del alpha_net; torch.cuda.empty_cache()
-    
