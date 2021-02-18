@@ -146,7 +146,7 @@ def markov_chain(G, steps, cc=None):
     for _ in range(steps):
         H, H_class_card = markov_step(G, G_class_card, n)
         
-    return H
+    return H, H_class_card
 
 def uniform_random_dag(n, exp=2, alpha=0, X_0=None, cc=None):
     ''' Returns a random DAG (almost uniformly, as viewed in terms of 
