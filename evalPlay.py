@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-import gameState as gs
-import mcts
-import randomUpDown as rud
-import utils
 
+import utils
+from gameState import GameState
+import mcts
 import numpy as np
 import torch
 import torch.multiprocessing as mp
-
 import os
 
 def evaluation(alpha_net, 
@@ -64,24 +60,26 @@ def evaluation(alpha_net,
     
     # evaluation
     apprentice_wins = 0
-    actions = np.arange(gs.UNIV) 
-    state_generator = gs.initial_state(prcs_id, train_iter)
-    for k in range(num_plays):
-        
+    actions = np.arange(GameState.NUM_ACTIONS) 
+    state_generator = GameState.state_generator(prcs_id, 
+                                                train_iter, 
+                                                markov_exp=2)
+    for k in range(num_plays):      
         #store states encountered
         states = []
-        
+    
         # uniformly randomly choose which model plays first
         net_to_start = np.random.choice([alpha, apprentice])     
         
         # play a randomly generated game of upset-downset
-        cur_state = next(state_generator)
-        states.append(cur_state)
+        game_state = next(state_generator)
+        states.append(game_state.encoded_state)
         cur_net = net_to_start
         move_count = 0
         winner = None
-        while not gs.is_terminal_state(cur_state):
-            root = mcts.PUCTNode(cur_state)
+        
+        while not game_state.is_terminal_state():
+            root = mcts.PUCTNode(game_state)
             if cur_net == alpha:
                 mcts.MCTS(
                     root, 
@@ -96,9 +94,9 @@ def evaluation(alpha_net,
                     search_iters)
             policy = mcts.MCTS_policy(root, temp)
             move = np.random.choice(actions, p=policy)
-            cur_state = root.edges[move].state
+            game_state = root.edges[move].state
+            states.append(game_state.encoded_state)
             cur_net = 1 - cur_net
-            states.append(cur_state)
             move_count += 1
             
         # decide winner
@@ -114,8 +112,7 @@ def evaluation(alpha_net,
                                prcs_id, 
                                k, 
                                train_iter)
-            
-        
+    
     # append results to shared list
     shared_results.append(apprentice_wins)
 
@@ -166,8 +163,7 @@ def multi_evaluation(train_iter,
     # evenly split plays per process   
     num_plays = total_plays//num_processes        
         
-    # initialze alpha net/apprentice_net,load paramaters and place 
-    # in evaluation mode
+    # initialze alpha/apprentice nets and load paramaters 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'      
     print('Initializing alpha and apprentice models on' \
           f' device : {device}...')    

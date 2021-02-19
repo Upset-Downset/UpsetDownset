@@ -1,14 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
 
 import digraph 
-import upDownPlot as udp                                                       
+import upDownPlot as udp
+import random                                               
 import matplotlib.pyplot as plt
-import random
-import time
 from IPython.display import clear_output
 
 class UpDown(object):
@@ -206,11 +203,9 @@ class UpDown(object):
         agent_2 : func, optional
             can play ageainst an agent or have two agents play against 
             one another. The default is None.
-
         Returns
         -------
         None.
-
         '''
         initl_pos = self
         
@@ -281,15 +276,21 @@ class UpDown(object):
                 u = int(input(f'{cur_player.capitalize()}, choose a node: '))
                 while not (u in options_dict[cur_player]):
                     print(u, " is not a valid choice.")
-                    u = int(input(f'{cur_player.capitalize()}, choose a {choice_dict[cur_player]}, node: '))
+                    u = int(
+                        input(f'{cur_player.capitalize()},'\
+                              f' choose a {choice_dict[cur_player]},'\
+                              ' node: '))
+                    
             if cur_player == 'up':
                 cur_pos = cur_pos.up_play(u)
             else:
-                cur_pos = cur_pos.down_play(u)  
+                cur_pos = cur_pos.down_play(u) 
+                
             clear_output(wait=True)
             board = udp.UpDownPlot(initl_pos, marker=marker) 
             board.leave_subgraph_fig(cur_pos)
             plt.pause(0.01)
+            
             if cur_player == 'up':
                 cur_player = 'down'
             else:

@@ -1,99 +1,177 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Mon Jan 11 09:14:13 2021
-
 @author: Charles Petersen and Jamison Barsotti
 """
-
-import numpy as np
+from gameState import GameState
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-NUM_FILTERS = 64
+# network architecture variables
+NUM_FILTERS = 64    # number of conv. filters in the input/residual blocks
+NUM_RES_BLOCKS = 5 # number of residual blocks
+NUM_POL_FILTERS = 2 # number of conv. filters in the policy head
+NUM_VAL_FILTERS = 1 # number of conv. filters in the value head
+NUM_HIDDEN_VAL = 64 # size of the hidden layer in the value head
 
-class UpDownNet(nn.Module):
-    def __init__(self, input_shape, actions_n):
-        super(UpDownNet, self).__init__()
 
-        self.conv_in = nn.Sequential(
-            nn.Conv2d(input_shape[0], NUM_FILTERS, kernel_size=3, padding=1),
-            nn.BatchNorm2d(NUM_FILTERS),
-            nn.LeakyReLU()
-        )
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, board_shape):       
+        super(ConvBlock, self).__init__()      
+        self.in_channels = in_channels
+        self.board_shape = board_shape        
+        self.conv1 = nn.Conv2d(in_channels, 
+                               out_channels, 
+                               kernel_size=3, 
+                               stride=1, 
+                               padding=1)
+        self.batch_norm1 = nn.BatchNorm2d(out_channels)
 
-        # layers with residual
-        self.conv_1 = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, NUM_FILTERS, kernel_size=3, padding=1),
-            nn.BatchNorm2d(NUM_FILTERS),
-            nn.LeakyReLU()
-        )
-        self.conv_2 = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, NUM_FILTERS, kernel_size=3, padding=1),
-            nn.BatchNorm2d(NUM_FILTERS),
-            nn.LeakyReLU()
-        )
-        self.conv_3 = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, NUM_FILTERS, kernel_size=3, padding=1),
-            nn.BatchNorm2d(NUM_FILTERS),
-            nn.LeakyReLU()
-        )
-        self.conv_4 = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, NUM_FILTERS, kernel_size=3, padding=1),
-            nn.BatchNorm2d(NUM_FILTERS),
-            nn.LeakyReLU()
-        )
-        self.conv_5 = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, NUM_FILTERS, kernel_size=3, padding=1),
-            nn.BatchNorm2d(NUM_FILTERS),
-            nn.LeakyReLU()
-        )
+    def forward(self, x):       
+        # torch expects a batch
+        x = x.view(-1, 
+                   self.in_channels, 
+                   self.board_shape[0], 
+                   self.board_shape[1])    
+        
+        # Convolution-->Batch Norm-->Leaky Relu
+        x = self.conv1(x)
+        x = self.batch_norm1(x)
+        x = F.leaky_relu(x)  
+        
+        return x
+    
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):        
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels,
+                               out_channels,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1,
+                               bias=False)
+        self.batch_norm1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels,
+                               out_channels,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1,
+                               bias=False)
+        self.batch_norm2 = nn.BatchNorm2d(out_channels)
+        
+    def forward(self, x):      
+        # the skip connection
+        skip = x
+        
+        # Convolution-->Batch Norm-->Leaky Relu
+        out = self.conv1(x)
+        out = self.batch_norm1(out)
+        out = F.leaky_relu(out)
+        
+        # Convolution-->Batch Norm-->Leaky Relu
+        out = self.conv2(out)
+        out = self.batch_norm2(out)
+        out = F.leaky_relu(out)
+        
+        # skip connection-->Leaky Relu
+        out += skip
+        out = F.leaky_relu(out)
+        
+        return out
 
-        body_out_shape = (NUM_FILTERS, ) + input_shape[1:]
-
-        # value head
-        self.conv_val = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, 1, kernel_size=1),
-            nn.BatchNorm2d(1),
-            nn.LeakyReLU()
-        )
-        conv_val_size = self._get_conv_val_size(body_out_shape)
-        self.value = nn.Sequential(
-            nn.Linear(conv_val_size, 20),
-            nn.LeakyReLU(),
-            nn.Linear(20, 1),
-            nn.Tanh()
-        )
-
-        # policy head
-        self.conv_policy = nn.Sequential(
-            nn.Conv2d(NUM_FILTERS, 2, kernel_size=1),
-            nn.BatchNorm2d(2),
-            nn.LeakyReLU()
-        )
-        conv_policy_size = self._get_conv_policy_size(body_out_shape)
-        self.policy = nn.Sequential(
-            nn.Linear(conv_policy_size, actions_n)
-        )
-
-    def _get_conv_val_size(self, shape):
-        o = self.conv_val(torch.zeros(1, *shape))
-        return int(np.prod(o.size()))
-
-    def _get_conv_policy_size(self, shape):
-        o = self.conv_policy(torch.zeros(1, *shape))
-        return int(np.prod(o.size()))
-
+class PolicyHead(nn.Module):
+    def __init__(self, in_channels, out_channels, board_shape, num_actions):
+        super(PolicyHead, self).__init__()
+        self.mix_channels = out_channels*(board_shape[0]*board_shape[1])  
+        self.conv = nn.Conv2d(in_channels, 
+                              out_channels,
+                              kernel_size=1, 
+                              stride=1 )
+        self.batch_norm = nn.BatchNorm2d(out_channels)
+        self.log_softmax = nn.LogSoftmax(dim=1)
+        self.dense = nn.Linear(self.mix_channels, num_actions)
+        
+    def forward(self, x): 
+        #Convolution-->Batch Norm-->Leaky Relu
+        x = self.conv(x)
+        x = self.batch_norm(x)
+        x = F.leaky_relu(x)
+        
+        # Dense layer-->Log Softmax
+        x = x.view(-1, self.mix_channels)
+        x = self.dense(x)
+        policy = self.log_softmax(x).exp() 
+        
+        return policy
+    
+class ValueHead(nn.Module):
+    def __init__(self, 
+                 in_channels, 
+                 out_channels, 
+                 hidden_layer_size, 
+                 board_shape):
+        super(ValueHead, self).__init__()
+        self.mix_channels = out_channels*(board_shape[0]*board_shape[1])
+        self.conv1 = nn.Conv2d(in_channels,
+                               out_channels,
+                               kernel_size=1,
+                               stride=1)
+        self.batch_norm1 = nn.BatchNorm2d(out_channels)
+        self.dense1 = nn.Linear(self.mix_channels, hidden_layer_size)
+        self.dense2 = nn.Linear(hidden_layer_size, 1)
+        
     def forward(self, x):
-        batch_size = x.size()[0]
-        v = self.conv_in(x)
-        v = v + self.conv_1(v)
-        v = v + self.conv_2(v)
-        v = v + self.conv_3(v)
-        v = v + self.conv_4(v)
-        v = v + self.conv_5(v)
-        val = self.conv_val(v)
-        val = self.value(val.view(batch_size, -1))
-        pol = self.conv_policy(v)
-        pol = self.policy(pol.view(batch_size, -1))
-        return pol, val
+        # Convolution-->Batch Norm--> Leaky Relu
+        x = self.conv1(x)
+        x = self.batch_norm1(x)
+        x = F.leaky_relu(x)
+        
+        # Linear-->Leaky Relu
+        x = x.view(-1, self.mix_channels)
+        x = self.dense1(x)
+        x = F.leaky_relu(x)
+        
+        # Linear-->Tanh
+        x = self.dense2(x)
+        value = torch.tanh(x)
+        
+        return value
+     
+class AlphaZeroNet(nn.Module):
+    def __init__(self,
+                 in_channels=GameState.STATE_SHAPE[0],
+                 board_shape=GameState.STATE_SHAPE[1:],
+                 num_actions=GameState.NUM_ACTIONS,
+                 num_res_blocks=NUM_RES_BLOCKS,
+                 num_filters=NUM_FILTERS,
+                 num_pol_filters=NUM_POL_FILTERS,
+                 num_val_filters=NUM_VAL_FILTERS,
+                 num_hidden_val=NUM_HIDDEN_VAL):
+        
+        super(AlphaZeroNet, self).__init__()
+        self.num_res_blocks = num_res_blocks
+        # convolutional block
+        self.conv = ConvBlock(in_channels, num_filters, board_shape)
+        # residual blocks
+        for block in range(self.num_res_blocks):
+            setattr(self, f'residual_{block}', 
+                    ResidualBlock(num_filters, num_filters))
+        # policy head
+        self.policy_head = PolicyHead(num_filters, 
+                                      num_pol_filters, 
+                                      board_shape,
+                                      num_actions)
+        # value head
+        self.value_head = ValueHead(num_filters, 
+                                    num_val_filters, 
+                                    num_hidden_val,
+                                    board_shape)
+        
+    def forward(self, x):       
+        # Convolution-->Residuals-->Policy/Value
+        x = self.conv(x)
+        for block in range(self.num_res_blocks):
+            x = getattr(self, f'residual_{block}')(x)
+        policy = self.policy_head(x)
+        value = self.value_head(x)
+        
+        return policy, value

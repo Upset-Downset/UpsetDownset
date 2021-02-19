@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 
@@ -148,7 +146,7 @@ def markov_chain(G, steps, cc=None):
         
     return H, H_class_card
 
-def uniform_random_dag(n, exp=2, alpha=0, X_0=None, cc=None):
+def uniform_random_dag(n, exp=2, extra_steps=0, X_0=None, cc=None):
     ''' Returns a random DAG (almost uniformly, as viewed in terms of 
     the equivalence classes of trasnistively reduced DAGS) on 'n' nodes using 
     the markov process described by Patryk Kozieł and Małgorzata Sulkowska.
@@ -162,7 +160,7 @@ def uniform_random_dag(n, exp=2, alpha=0, X_0=None, cc=None):
         process. In the report by Kozieł and Sulkowska, they conjecture
         that it is sufficient for this to be 2 to obtain a random DAG almost 
         uniformly selected. Thus, we make the default 2.
-    alpha : int, optional
+    extra_steps : int, optional
         Use this to fine tune the number of steps taken in the markov chain. 
         The default is 0.
     X_0 : dict, optional
@@ -185,6 +183,6 @@ def uniform_random_dag(n, exp=2, alpha=0, X_0=None, cc=None):
         else:
             X_0_class_card = cc
             
-    G = markov_chain(X_0, int(n**exp + alpha), cc=X_0_class_card)
+    G, _ = markov_chain(X_0, int(n**exp + extra_steps), cc=X_0_class_card)
     
     return G

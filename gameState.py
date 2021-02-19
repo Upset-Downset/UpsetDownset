@@ -1,241 +1,230 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
+
+NOTE: The encoded representation of an upset-dowsnet game is always 
+viewed from the current players perspective (the player to move).
+We use the convention that all players play from the perspective of Up. 
+I.e., if it is Downs move in the game, then we change perspective so 
+that Up is to move in the negtive of the game.
+
 """
-
+from randomUpDown import RandomGame
+from upDown import UpDown
 import digraph
-import upDown as ud
-import randomUpDown as rud
-import utils
-
 import numpy as np
-import copy
+import glob
+import os
+import pickle
 
-
-# universe size our games live in: the maximum number of nodes 
-# a game our model can play
-UNIV = 10
-
-# tracking the current player 
-UP = 0
-DOWN = 1
-
-# the shape of a game state
-STATE_SHAPE = (4, UNIV, UNIV)
-
-def to_state(game, dim = UNIV, to_move = UP):
-    ''' Returns the encoded representation of 'game' from the persepective of 
-    player 'to_move'. For use as input to a neural network.
-       
-    NOTE: The encoded representation of an upset-dowsnet game is always 
-    viewed from the current players perspective (the player to move). We use 
-    the convention that all players play from the perspective of Up. 
-    I.e., if it is Downs move in the game, then we change perspective so 
-    that Up is to move in the negtive of the game.
-
-    Parameters
-    ----------
-    game : UpDown
-        a game of upset-downset.
-    dim : int (nonnegative), optional
-        must be at least as large as the number of nodes in 'game'. 
-        The default is UNIV.
-    to_move : UP or DOWN, optional
-        The player to move. The default is UP.
-
-    Returns
-    -------
-    state : 3D-numpy array of shape (4, UNIV, UNIV)
-        the encoded representation of 'game' is a 4 channel dim x dim 
-        image stack. The four, dim x dim channels C_k (for k=0,1,2,3) together 
-        constitute a binary feature encoding of the state of 'game' via the 
-        adjacecny matrix of the directed acyclic graph underlying 'game', the
-        node coloring of the graph and the player 'to_move'. 
-        
-        The first three channels C_0, C_1, C_2 encode the presence of nodes 
-        (resp. blue, green, red)  and their edge relationships amongst one 
-        another: for k=0,1,2 entry C_k(i,j) = 1 if node j has color 1+k and 
-        node i is an ancestor of node j. The last channel C_3 encodes the
-        player 'to_move': C_3 = 0 if Up is to move and 0 if Down is to
-        move.
-     
+class GameState(object):
+    '''An abstract class for representing a upset-downset game in a format 
+    for use with the AlphaZero algorithm.
     '''
-    assert len(game) <= dim, 'The game is to large.'
-
-    # if the move is to Down, get the negative game
-    # and set the last channel to a constant 1
-    state = np.zeros(STATE_SHAPE, dtype=np.int8)
-    if to_move == DOWN:
-        state[3,:,:] = 1
-        game = -game
-  
-    # get the underlying dag, its transitive closure and node coloring
-    dag = game.dag
-    tc = digraph.transitive_closure(dag)
-    color_dict = game.coloring
-
-    # fill in the encoded representation
-    for node in tc:
-      # set the diagonals of the first three channels according to
-      # nodes which are present in the game and their colors 
-      color = color_dict[node]
-      state[1 - color, node, node] = 1
     
-      # now set the remainder of each nodes upset 
-      # in their proper channel, row and column according to color,
-      # node and cover, respectively
-      for cover in tc[node]:
-        color = color_dict[cover]
-        state[1 - color, node, cover] = 1
+    # class variables which control the shape of the encoded 
+    # representation of upset-downset.
+    STATE_SHAPE = (4, 50, 50)
+    NUM_ACTIONS = 50
+    UP = 0
+    DOWN = 1
+    
+    def __init__(self, game, current_player):
         
-    return state
-
-def to_game(state):
-    '''Returns the upset-downset game from the encoded 'state'.
+        self.current_player = current_player
+        self.game = game if current_player == GameState.UP else -game
     
-    Parameters
-    ----------
-    state : 3D-numpy array of shape (4, UNIV, UNIV)
-        encoded representation of an upset-downset game.
-
-    Returns
-    -------
-    UpDown
-        the decoded upset-downset game corresponding to 'state'.
-
-    '''
-    # get node indices and their colors present in 'state'
-    node_info = np.diagonal(state[0:3], axis1=1, axis2=2)
-    node_info = np.argwhere(node_info)
-    
-    # set colors of nodes present in 'state'
-    colors = { node : 1 - channel for channel, node in node_info}
-    # set the corresponding directed acyclic graph
-    dag = {}
-    for info in node_info:
-        node = info[1]
-        upset = sum(state[[0,1,2],node, :])
-        upset[node] = 0
-        upset = np.argwhere(upset).reshape(-1)
-        dag[node] = list(upset)
-    
-    G = ud.UpDown(dag, coloring=colors)
-    
-    # change perspecive if its Downs turn!
-    cur_player = state[3,0,0]
-    if cur_player == DOWN:
-        G = -G
+    @property
+    def encoded_state(self):
+        return self.encode()
         
-    return G
-
-def take_action(state, a):
-    ''' Returns the next state of the game 
-    Parameters
-    ----------
-    state : 3D-numpy array of shape (4, UNIV, UNIV)
-        encoded representation of an upset-downset game.
-    a : int (nonnegative)
-        a valid node to be played in 'state'.
-
-    Returns
-    -------
-    next_state : 3D-numpy array of shape (4, UNIV, UNIV)
-        the current position of the upset-downset game after the upset of node
-        'a' has been removed from the previous position 'state', and the 
-        persepctive of tha game has been changed to reflect the current player 
-        to move.
-
-    ''' 
-    assert a in valid_actions(state), 'That is not a valid action.'
-    
-    # remove node 'a' and its upset in 'state'
-    # (could probably do this witopy, but i'm too lazy)
-    take_a = copy.deepcopy(state)
-    # rows is a 2-D array in which the (i,j) entry tells us to zero 
-    # out the jth column in the ith array of 'take_a'
-    rows = take_a[[0,1,2],[a],:]
-    # remove move said columns
-    for row in np.argwhere(rows):
-      take_a[[row[0]],:,[row[1]]] = 0
-    
-    # initialize array for next state
-    shp = state.shape
-    next_state = np.zeros(shp, dtype=np.int8)
-    # set player to move in next_state
-    cur_player = state[3,0,0]
-    next_state[3,:,:] = 1-cur_player
-    # get 2-D array of the nodes still on the board and their color
-    # after 'a' has been taken
-    diags = np.diagonal(take_a[[0,1,2],:,:], axis1=1, axis2=2)
-    idxs = np.argwhere(diags)
-    
-    #build 'next state' from 'take_a' and 'idxs'
-    for row in idxs:
-        node = row[1]
-        color = 2-row[0]
-        # sum over all node-th rows (gives the upset of the node)
-        # which is to be the downset of the node in next state
-        col = sum(take_a[[0,1,2],[node],:])
-        # set the downset of node in 'next_state'
-        next_state[[color],:,[node]] = col
+    @encoded_state.setter
+    def encoded_state(self, x):
+        if self.encoded_state is None:
+            self.encoded_state = x
         
-    return next_state
-
-def valid_actions(state):
-    ''' Returns the current players valid actions in the upset-downset game
-    encoded in 'state'
-
-    Parameters
-    ----------
-    state : 3D-numpy array of shape (4, UNIV, UNIV)
-        encoded representation of an upset-downset game.
-
-    Returns
-    -------
-    1-D numpy array
-        nodes available to play in 'state' from the persepective of the 
-        current player.
-
-    '''   
-    d = np.sum(np.diagonal(state[[0,1]], 0,2),0)
-    
-    return np.nonzero(d)[0]
-
-def is_terminal_state(state):
-    ''' Returns wether current player has lost the game. I.e., a terminal 
-    state is a state in which the current player has no valid moves. (Check 
-    before current player attempts to take an action!)
-
-    Parameters
-    ----------
-    state : 3D-numpy array of shape (4, UNIV, UNIV)
-        encoded representation of an upset-downset game.
-
-    Returns
-    -------
-    bool
-        True if the current player has lost the game, and False otherwise.
-
-    '''
-    return True if len(valid_actions(state)) == 0 else False
-
-
-def initial_state(prcs_id, train_iter):
-    '''Generator of random game states.
-
-    Returns
-    ------
-    3-D Numpy array
-        an (almost) uniformly randomly generated encoded game of 
-        upset-downset with 'Up'/'Down' chosen uniformly randomly to start. 
-        (See randomUpDown and/or randomDag.)
+    def valid_actions(self):
+        '''Returns the valid actions from the game state.
+        
+        Returns
+        -------
+        list
+            nodes available to play in game state. (As seen from the 
+            perspective the current player.)
 
         '''
-    start = utils.get_latest_markov(prcs_id, train_iter)
-    while True:
-        random_player = np.random.choice([UP, DOWN])
-        random_game = rud.RandomGame(UNIV, RGB=True, start=start)
-        random_state = to_state(random_game, to_move=random_player)
-        start = random_game.dag
-        yield random_state
+        return self.game.up_nodes()
+    
+    def take_action(self, x):
+        ''' Returns the next game state after node 'x' has been played.
+        
+        Parameters
+        ----------
+        x : int (nonegative)
+            valid action from game state
+
+        Returns
+        -------
+        GameState
+            the game state after the node 'x' has been played. 
+        '''
+        assert x in self.valid_actions(), 'Not a valid action.'
+        
+        # remove upset of x
+        option = self.game.up_play(x)
+        
+        player_to_move = GameState.DOWN \
+            if self.current_player == GameState.UP  else GameState.UP
+        
+        return GameState(option, player_to_move)
+    
+    def is_terminal_state(self):
+        ''' Returns wether the current player has lost the game. I.e., a 
+        terminal state is a game state in which the current player has no 
+        valid moves. (Check before current player attempts to take an action!)
+
+        Returns
+        -------
+        bool
+            True if the current player has lost the game, and False otherwise.
+
+    '''
+        return True if len(self.valid_actions()) == 0 else False
+    
+    def plot(self):
+        ''' Plots the upset-downset game underlying the game state from the 
+        current players perspective.
+        
+        Returns
+        -------
+        None.
+
+        '''
+        self.game.plot()
+        
+    def encode(self):
+        ''' Returns the encoded representation of the game state.
+       
+        Returns
+        -------
+        encoded_state : 3D-numpy array 
+            the encoded representation is a 4 channel image stack. 
+            The four channels C_k (for k=0,1,2,3) together 
+            constitute a binary feature encoding of the state of the game
+            via the adjacecny matrix of the underlying DAG, the node
+            coloring, and the curent player. 
+        
+            The first three channels C_0, C_1, C_2 encode the presence of
+            nodes (resp. blue, green, red)  and their edge relationships 
+            amongst one another: for k=0,1,2 entry C_k(i,j) = 1 if node j 
+            has color 1-k and node i is an ancestor of node j. The last 
+            channel C_3 encodes the current player: C_3 = 0 if Up is to 
+            move and 1 if Down is to move. 
+     
+        '''
+        assert len(self.game) <= GameState.NUM_ACTIONS, 'The game is too large.'
+
+        # if the move is to Down, get the negative game
+        # and set the last channel to a constant 1
+        encoded_state = np.zeros(GameState.STATE_SHAPE, dtype=np.int8)
+        if self.current_player == GameState.DOWN:
+            encoded_state[3,:,:] = 1
+            
+        # we can actually do all of this faster by building the encoded 
+        # state while finding the trasnisitive closure...too lazy
+        
+        # get the underlying dag, its transitive closure and node coloring
+        dag = self.game.dag
+        tc = digraph.transitive_closure(dag)    
+        color_dict = self.game.coloring
+
+        # fill in the encoded representation
+        for node in tc:
+          # set the [node,node] entry in the diagonal of the proper 
+          # channel according to the color of node.
+          color = color_dict[node]
+          encoded_state[1 - color, node, node] = 1
+    
+          # now for each adjacent node set the off diagonal entry 
+          # in the proper channel (adjacent node color), row (node) and 
+          # column (adjacent_node)
+          for adjacent_node in tc[node]:
+            color = color_dict[adjacent_node]
+            encoded_state[1 - color, node, adjacent_node] = 1
+            
+        return encoded_state       
+    
+    @staticmethod
+    def to_game(encoded_state):
+        '''Returns the upset-downset game from the 'encoded_state'.
+    
+        Parameters
+        ----------
+        state : 3D-numpy array of shape (4, UNIV, UNIV)
+        encoded representation of an upset-downset game.
+        
+        Returns
+        -------
+        UpDown
+            the decoded game state corresponding to 'encoded_state'.
+        '''
+        # get node indices and their colors present in 'state'
+        node_info = np.diagonal(encoded_state[0:3], axis1=1, axis2=2)
+        node_info = np.argwhere(node_info)
+    
+        # set colors of nodes present in 'state'
+        colors = { node : 1 - channel for channel, node in node_info}
+        # set the corresponding directed acyclic graph
+        dag = {}
+        for info in node_info:
+            node = info[1]
+            upset = sum(encoded_state[[0,1,2],node, :])
+            upset[node] = 0
+            upset = np.argwhere(upset).reshape(-1)
+            dag[node] = list(upset)
+            
+        # get game from absolute perspective
+        game = UpDown(dag, coloring=colors)
+        current_player = encoded_state[3,0,0]
+        game = -game if current_player == GameState.DOWN else game
+        
+        return game
+    
+    @staticmethod
+    def state_generator(prcs_id, 
+                        train_iter, 
+                        markov_exp=1, 
+                        extra_steps=0,
+                        RGB=True):
+        # get the final step in the Markov chain taking place in 
+        # process #prcs_id in last training iteration
+        last_train_iter = train_iter - 1
+        
+        if train_iter == 0:
+            start_markov = None
+        else:
+            # get path to most recent self-play data
+            search = f'./train_data/self_play_data/iter_{last_train_iter}'
+            files = glob.glob(
+                f'{search}/self_play_iter{last_train_iter}_prcs{prcs_id}*')
+            most_recent = max(files, key=os.path.getctime)
+            # unpickle most recent self play data
+            file  = open(most_recent, 'rb')
+            data = pickle.load(file)
+            file.close()
+    
+            # get the DAG from most recent play data
+            encoded_state = data[0][0]
+            game = GameState.to_game(encoded_state)
+            start_markov = game.dag
+        
+        while True:
+            random_player = np.random.choice([GameState.UP, GameState.DOWN])
+            random_game = RandomGame(GameState.NUM_ACTIONS, 
+                                     markov_exp=markov_exp,
+                                     extra_steps=extra_steps,
+                                     RGB=RGB, 
+                                     start=start_markov)
+            random_state = GameState(random_game, random_player)
+            start_markov = random_game.dag
+            
+            yield random_state

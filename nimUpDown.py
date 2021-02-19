@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-
-import upDown as ud
+from upDown import UpDown
 
 def int_to_bin(n):
     ''' Returns the binary representation of the integer 'n'.
@@ -50,7 +47,7 @@ def nim_dag(heaps):
         node_count += k
     return dag
 
-class NimGame(ud.UpDown):
+class NimGame(UpDown):
     ''' Subclass of UpDown for Nim games of upset-downset.
     '''
     def __init__(self, heaps):
@@ -70,7 +67,7 @@ class NimGame(ud.UpDown):
 
         '''
         dag = nim_dag(heaps)
-        ud.UpDown.__init__(self, dag, reduced = True)
+        UpDown.__init__(self, dag, reduced = True)
         self.heaps = heaps
                            
     def nim_sum(self):

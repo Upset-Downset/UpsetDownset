@@ -1,12 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
 
-import gameState as gs
+from gameState import GameState
 import numpy as np
-import copy
 import math
 import torch
 
@@ -18,8 +15,8 @@ class PUCTNode(object):
         '''
         Parameters
         ----------
-        state : 3D-numpy array of shape (4, UNIV, UNIV)
-            encoded representation of an upset-downset game.
+        state : GameState
+           state representation of an upset-downset game.
         parent : PUCTNode or None, optional
             The parent node to 'self'. I.e., the node containg the previous 
             state and its action stats. If root, then parent is None. The 
@@ -44,15 +41,15 @@ class PUCTNode(object):
         # 1-D numpy array: 
         # action a --> P(self.state,a) for all actions a
         # to be updated with probs from NET upon expansion of node
-        self.edge_probs = np.zeros([gs.UNIV], dtype=np.float32)
+        self.edge_probs = np.zeros([GameState.NUM_ACTIONS], dtype=np.float32)
         # 1-D numpy array: 
         # action a --> W(self.state,a) for all actions a
         # to be updated upon backup
-        self.edge_values = np.zeros([gs.UNIV], dtype=np.float32) 
+        self.edge_values = np.zeros([GameState.NUM_ACTIONS], dtype=np.float32) 
         # 1-D numpy array: 
         # action a --> N(self.state,a) for all actions a
         # to be updated upon backup
-        self.edge_visits = np.zeros([gs.UNIV], dtype=np.float32)
+        self.edge_visits = np.zeros([GameState.NUM_ACTIONS], dtype=np.float32)
         # list to store valid actions from self.state
         # to be updated upon expansion of node
         self.valid_actions = []
@@ -64,16 +61,16 @@ class PUCTNode(object):
         Parameters
         ----------
         a : int (nonnegative)
-            action leading from self.state to next state.
+            action leading to next state.
 
         Returns
         -------
         PUCTNode
-            child node under self along edge 'a'.
+            child node along edge 'a'.
 
         '''
         if a not in self.edges:
-            next_state = gs.take_action(self.state, a)
+            next_state = self.state.take_action(a)
             self.edges[a] = PUCTNode(next_state, parent=self, action=a)
         return self.edges[a]
     
@@ -99,11 +96,11 @@ class PUCTNode(object):
             action chosen by PUCT formula.
 
         '''
-        probs = copy.deepcopy(self.edge_probs)
+        probs = np.copy(self.edge_probs)
         # if self is root, add dirichlet noise
         if self.parent == None:
             probs = (1-eps)*probs \
-                + eps*np.random.dirichlet([eta]*gs.UNIV)
+                + eps*np.random.dirichlet([eta]*GameState.NUM_ACTIONS)
         # mean action values
         # 1-D numpy array: 
         # action a --> Q(self.state, a) for all actions a
@@ -119,7 +116,7 @@ class PUCTNode(object):
         PUCT = Q + U
         # need set PUCT(self.state, a) to negative infinity 
         # for all invalid actions a from self.state
-        invalid_actions = list(set(range(gs.UNIV)) 
+        invalid_actions = list(set(range(GameState.NUM_ACTIONS)) 
                                - set(self.valid_actions))
         PUCT[invalid_actions] = -np.Inf
 
@@ -150,8 +147,7 @@ class PUCTNode(object):
         Parameters
         ----------
         probs : 1-D numpy array of shape (gs.UNIV,)
-            prior probabilities of actions from 'self.state'
-            queried from neural network.
+            prior probabilities of actions queried from neural network.
         actions : list
             valid actions from 'self.state'.
 
@@ -170,8 +166,8 @@ class PUCTNode(object):
         Parameters
         ----------
         value : int
-            wether self.state is a winning position from the perspective
-            of the current player (resp. +1, -1 ). If 'self' is terminal 
+            wether current game is a winning position from the perspective
+            of the current player (resp. +1, -1 ). If node is terminal 
             we derive 'value' from the rules of upset-downset. Otherwise, 
             'value' is queried from the neural network.
 
@@ -192,10 +188,10 @@ class PUCTNode(object):
             current = current.parent
     
     def to_root(self):
-        ''' Returns 'self' as root node. After an MCTS has been perfomred 
-        and an action has been taken leading to 'self' via the MCTS_policy(), 
-        we make 'self' the new root (and hopefully discard the remainder of 
-        the tree.)
+        ''' Return as root node. After an MCTS has been performed 
+        and an action has been taken from root via the MCTS_policy(), 
+        we make declare the new root and discard the portion of the tree that 
+        is no longer needed.
         
         Returns
         -------
@@ -215,7 +211,7 @@ def MCTS(root, net, device, search_iters):
     ----------
     root : PUCTNode
         root of tree.
-    net : UpDownNet
+    net : AlphaZeroNet
         model used for agent.
     device : str
         the device to run the model on ('cuda' if available, else 'cpu').
@@ -231,7 +227,7 @@ def MCTS(root, net, device, search_iters):
     for _ in range(search_iters):
         leaf = root.find_leaf()
         # if leaf is a terminal state, i.e. previous player won
-        if gs.is_terminal_state(leaf.state):
+        if leaf.state.is_terminal_state():
             # the value should be from the current players perspective
             value = -1
             leaf.backup(value)
@@ -239,13 +235,13 @@ def MCTS(root, net, device, search_iters):
         else:
             # query the net
             encoded_leaf_state = torch.from_numpy(
-                leaf.state).float().reshape(1, 4, gs.UNIV, gs.UNIV).to(device)
+                leaf.state.encoded_state).float().to(device)
             probs, value = net(encoded_leaf_state)
             del encoded_leaf_state; torch.cuda.empty_cache()
             probs = probs.detach().cpu().numpy().reshape(-1)
             value = value.item()
             # expand and backup\
-            actions = gs.valid_actions(leaf.state)
+            actions = leaf.state.valid_actions()
             leaf.expand(probs, actions)
             leaf.backup(value)
             
@@ -271,7 +267,7 @@ def MCTS_policy(root, temp):
 
     '''
     if temp == 0:
-        policy = np.zeros(gs.UNIV, dtype=np.float32)
+        policy = np.zeros(GameState.NUM_ACTIONS, dtype=np.float32)
         max_visit = np.argmax(root.edge_visits)
         policy[max_visit] = 1
     else:
@@ -279,63 +275,3 @@ def MCTS_policy(root, temp):
             root.edge_visits)**(1/temp))
     return policy
     
-#def self_play(initial_state, net, device, search_iters=800, temp=1, tmp_thrshld=3):
-#    ''' Returns training data after self-play staring from 'initial state'.
-#    
-#    Parameters
-#    ----------
-#    initial_state : 3D-numpy array of shape (4, UNIV, UNIV)
-#        encoded representation of an upset-downset game.
-#    net : UpDownNet
-#        model used for agent.
-#    device : str
-#        the device to run the model on ('cuda' if available, else 'cpu').
-#    search_iters : int (nonnegative), optional
-#         the number of iterations of  MCTS to be performed for each turn. 
-#        The default is 800.
-#    temp : float, optional
-#        controls exploration in move choice until the temperature 
-#        threshold has been surpassed. The default is 1.
-#    tmp_thrshld : int (nonnegative), optional
-#        controls the number of moves in play until actions are chosen 
-#        deterministically via their visit count in MCTS. The default is 3.
-#    Returns
-#   -------
-#    train_data : list
-#        list of orderd triples (state, policy, value) encountered 
-#        during self play. For each state visited during self-play we 
-#        also record the MCTS policy found at that state and the value of 
-#        the state as determined by the outcome of the self-play from the 
-#        current players perspective. We do not include terminal states.
-#    '''
-#    states = []
-#    policies = []
-#    move_count = 0
-#    actions = np.arange(gs.UNIV)
-#    root = PUCTNode(initial_state)
-#    
-#    # play until a terminal state is reached
-#    while not gs.is_terminal_state(root.state):
-#        MCTS(root, net, device, search_iters)
-#        if move_count <= tmp_thrshld:
-#            t = temp
-#        else:
-#            t = 0
-#        policy = MCTS_policy(root, t)
-#        move = np.random.choice(actions, p=policy)
-#        states.append(root.state)
-#        policies.append(policy)
-#        root = root.edges[move]
-#        root.to_root()
-#        move_count += 1
-#        
-#    # update state values as seen from current players perspective
-#    if move_count %2 == 0:
-#        values = [(-1)**(i+1) for i in range(move_count)]
-#    else:
-#        values = [(-1)**i for i in range(move_count)]
-#        
-#    train_data = [(state, policy, value) for state, policy, value 
-#                  in zip(states, policies, values)]
-#    
-#    return train_data  

@@ -1,16 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
+import model
+import torch
 import os
-import glob
 import datetime
 import pickle
-
-import model
-import gameState as gs
-import torch
 
 def initialize_model_parameters():  
     ''' Initialize model parameters for the alpha and apprentice models
@@ -22,11 +17,9 @@ def initialize_model_parameters():
     None.
 
     '''
+    # initrialize model
     print('Initializing model parameters...\n')
-    
-    net = model.UpDownNet(
-        input_shape=gs.STATE_SHAPE, 
-        actions_n=gs.UNIV)
+    net = model.AlphaZeroNet()
     
     # create directory for alpha model data
     if not os.path.isdir('./train_data/model_data/alpha_data'):
@@ -114,14 +107,14 @@ def load_model(alpha_or_apprentice, device):
     search_path = f'./train_data/model_data/{alpha_or_apprentice}_data'
     path_to_model_data = path_to_most_recent_file(search_path)
 
-    # initialize model and load paramaters
-    net = model.UpDownNet(input_shape=gs.STATE_SHAPE, actions_n=gs.UNIV)
-    # if GPU is available, put model on GPU. (device index 0 by default)
+    # initialize model
+    net = model.AlphaZeroNet()
+    # if GPU is available, put model/params  on GPU. 
+    # device index 0 by default.
     if device == 'cuda':
         net.load_state_dict(
             torch.load(path_to_model_data, map_location='cuda:0'))
         net.to(device)
-    # no GPU...
     else:
         net.load_state_dict(
             torch.load(path_to_model_data, map_location='cpu'))
@@ -227,46 +220,3 @@ def load_play_data(play_type, train_iter):
         else:
             play_data.append(data)
     return play_data
-
-def get_latest_markov(prcs_id, train_iter):
-    ''' Returns the last DAG (transitively reduced...) produced in the markov 
-    chain taking place in process 'prcs_id'.
-
-    Parameters
-    ----------
-    prcs_id : int (nonnegative),
-        the process from which to continue the markov chain from where it 
-        left off.
-    train_iter : int (nonnegative)
-        the current iteration of the main training pipeline.
-
-    Returns
-    -------
-    DAG : dict
-        adjacency dict (adjacecny lisyts keyed by node)
-        of the last DAG (transitovely reduced...) produced in the markov 
-        chain taking place in process 'prcs_id'.
-
-    '''
-    # get most recent training iteration
-    if train_iter == 1:
-        DAG = {i:[] for i in range(gs.UNIV)}
-    else:
-        train_iter = latest_training_iteration()
-    
-        # get path to most recent data
-        search_path = f'./train_data/self_play_data/iter_{train_iter}'
-        files = glob.glob(
-            f'{search_path}/self_play_iter{train_iter}_prcs{prcs_id}*')
-        most_recent = max(files, key=os.path.getctime)
-        # unpickle most recent play data
-        file  = open(most_recent, 'rb')
-        data = pickle.load(file)
-        file.close()
-    
-        # get initial DAG from most recent play data
-        game_state = data[0][0]
-        game = gs.to_game(game_state)
-        DAG = game.dag
-    
-        return DAG

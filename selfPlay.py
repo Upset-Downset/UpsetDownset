@@ -1,13 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-import gameState as gs
+import utils 
+from gameState import GameState
 import mcts
-import randomUpDown as rud
-import utils
-
 import numpy as np
 import torch
 import torch.multiprocessing as mp
@@ -56,8 +52,10 @@ def self_play(alpha_net,
     None.
 
     '''
-    actions = np.arange(gs.UNIV)
-    state_generator = gs.initial_state(prcs_id, train_iter)
+    actions = np.arange(GameState.NUM_ACTIONS)
+    state_generator = GameState.state_generator(prcs_id, 
+                                                train_iter, 
+                                                extra_steps=200)
     
     for k in range(num_plays):
         initial_state = next(state_generator)
@@ -67,7 +65,7 @@ def self_play(alpha_net,
         move_count = 0
         
         # play until a terminal state is reached
-        while not gs.is_terminal_state(root.state):
+        while not root.state.is_terminal_state():
             mcts.MCTS(root, alpha_net, device, search_iters)
             if move_count <= temp_thrshld:
                 t = temp
@@ -75,7 +73,7 @@ def self_play(alpha_net,
                 t = 0
             policy = mcts.MCTS_policy(root, t)
             move = np.random.choice(actions, p=policy)
-            states.append(root.state)
+            states.append(root.state.encoded_state)
             policies.append(policy)
             root = root.edges[move]
             root.to_root()
@@ -146,7 +144,7 @@ def multi_self_play(train_iter,
     # evenly split plays per process   
     num_plays = total_plays//num_processes
             
-    #initialze alpha net,load paramaters and place in evaluation mode
+    #initialze alpha net/oad paramaters
     device = 'cuda' if torch.cuda.is_available() else 'cpu'      
     print(f'Initializing alpha model on device : {device}...')   
     alpha_net = utils.load_model('alpha', device)

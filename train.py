@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
 
-import gameState as gs 
-import utils
+from gameState import GameState
+import utils 
 
 import numpy as np
 import torch
@@ -13,7 +11,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import random
-
 
 def symmetries(train_data, num_symmetries):
     '''Returns 'num_samples' symmetries of each example in 'train_data'.
@@ -44,7 +41,7 @@ def symmetries(train_data, num_symmetries):
               
         for _ in range(num_symmetries):
             # get random permutation on dim # letters
-            p = np.random.permutation(gs.UNIV)
+            p = np.random.permutation(GameState.NUM_ACTIONS)
             # re-index nodes by permuting columns and rows
             state_sym = state[:,:,p]
             state_sym = state_sym[:,p,:]
@@ -57,10 +54,10 @@ def symmetries(train_data, num_symmetries):
 def train(replay_buffer,
           train_iter,
           epochs,
-          batch_size=256,
-          num_symmetries=10,
-          learning_rate=0.1,
-          momentum=0.9):
+          batch_size,
+          num_symmetries,
+          learning_rate,
+          momentum):
     ''' Takes 'num_symmetries' of each training example from self_play 
     iteration 'train_iter' and perfoms a single training pass in batch sizes 
     of 'batch_size'.
@@ -108,11 +105,11 @@ def train(replay_buffer,
     
     # train the apprentice net 
     print(f'Performing {epochs} training steps on batches of' \
-          f' size {batch_size} @ {num_symmetries} per training example...\n')
+          f' size {batch_size} @ {num_symmetries} symmetries' \
+          f' per training example...\n')
     
     epoch = 0
     total_loss = 0
-    apprentice_net.train()
     for _ in range(epochs):
         # get training batch (uniformly at random w/ repoacement)
         batch = random.choices(replay_buffer, k=batch_size)
@@ -136,21 +133,20 @@ def train(replay_buffer,
         # step
         loss.backward()
         optimizer.step()
-        
-        del states; del probs; del values
-        del out_logits; del out_values
-        torch.cuda.empty_cache
-
         epoch +=1
         
         # get rolling avg loss
         total_loss += loss.item()     
         if epoch % 10 == 0:
             print(f'Average loss over {epoch} epochs : {total_loss/epoch}')
-    
+            
+        del states; del probs; del values
+        del out_logits; del out_values; 
+        del loss_policy; del loss_value
+        torch.cuda.empty_cache
+        
     # save model parameters  
     print('Saving apprentice model parameters...\n')
-    
     utils.save_model(apprentice_net, 'apprentice', train_iter) 
     
     del apprentice_net; torch.cuda.empty_cache()

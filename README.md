@@ -15,7 +15,7 @@ Goal: develop and train an machine learning system that learns to play upset-dow
     
 Contents: To be added...
 
-TO DO LIST: (2/15/21)
+TO DO LIST: (2/5/21)
 
     - Sufficiently abstract the UpDownNet: input block, res blocks and output block?
     - Implement uniform poset generation into randomUpDown
@@ -23,7 +23,8 @@ TO DO LIST: (2/15/21)
     evaluation score...
     - Should we store all teaing data (self_play_data, eval_data, model_data) in a folder
     'train_data' with a text file containing the paramaters for the training?
-    - switch to f-strings everywhere.
+    - switch to f-strings everywhere. In particular use f-string in the play() method.
+    - Compactify the play() method?
     - Finish Upset-Downset intro notebook.
     - Finish game generation notebook.
     - Start/Finish trainig method notebook.
@@ -32,8 +33,5 @@ TO DO LIST: (2/15/21)
         * overview of project
         * where project stands/ what's next.
         * brief description of each module
-    - Playtest play() method with agents.
 
-DONE: (2/15/21)
-    -Compactify play() method. Added f-strings.
-    
+
