@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-
-import matplotlib.pyplot as plt
 import digraph    
+import matplotlib.pyplot as plt
 
 def color(c):
     ''' Assigns an RGB color value to 'c'.

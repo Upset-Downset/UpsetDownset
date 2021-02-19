@@ -1,35 +1,23 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-
-import model 
-import gameState as gs
-import mcts
-
+import utils
+from gameState import GameState
+import  mcts
 import random
 import torch
 import numpy as np
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-def alpha_zero(game, player, device=device, search_iters=800):
+def alpha(game, player_to_move, look_ahead=800):
     '''Returns the deterministic move suggetsed by current best model after 
-    performing an MCTS with 'search_iters' iterations on 'game' from the
-    perspective of 'player'.
+    performing an MCTS with 'search_iters' iterations on 'game_state'.
 
     Parameters
     ----------
     game : UpDown
-        a game of upset-downset.
-    device : str, optional
-        the device to run the model on. 'cuda' if available, else 'cpu'.
-    player : str
-        'Up' if the agent is to be the Up player, and 'Down' if the agent is
-        to be the Down player.
-    search_iters : int (nonegative), optional
-        teh number of MCTS iterations to perform. The default is 800.
+        an upset-downset game.
+    look_ahead : int (nonegative), optional
+        the number of MCTS iterations to perform. The default is 800.
 
     Returns
     -------
@@ -37,23 +25,22 @@ def alpha_zero(game, player, device=device, search_iters=800):
         node in 'game'.
 
     '''
-    cur_player = gs.UP if player == 'Up' else gs.DOWN
     
-    #load agent
-    agent = model.UpDownNet(
-        input_shape=gs.STATE_SHAPE, 
-        actions_n=gs.UNIV).to(device)
-    agent.load_state_dict(torch.load('alpha_net.pt'))
+    #load model
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    net = utils.load_model('alpha', device)
     
-    # encode game
-    state = gs.to_state(game, to_move=cur_player)
-    root = mcts.PUCTNode(state)
+    # get game state
+    current_player = GameState.UP if player_to_move =='Up' \
+        else GameState.DOWN
+    game_state = GameState(game, current_player)
     
     # run mcts from root
-    mcts.MCTS(root, agent, device, num_iters=search_iters)
+    root = mcts.PUCTNode(game_state)
+    mcts.MCTS(root, net, device, search_iters=look_ahead)
     
     # get move via deterministic mcts policy
-    actions = np.arange(gs.UNIV)
+    actions = np.arange(GameState.NUM_ACTIONS)
     policy = mcts.MCTS_policy(root, temp=0)
     move = np.random.choice(actions, p=policy)
     

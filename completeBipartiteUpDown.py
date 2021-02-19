@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti 
 """
 
-import upDown as ud
+from upDown import UpDown
 import random
 
 def complete_bipartite_dag(graphs):
@@ -52,7 +50,7 @@ def complete_bipartite_dag(graphs):
     return dag
 
 
-class CompleteBipartiteGame(ud.UpDown):
+class CompleteBipartiteGame(UpDown):
     ''' Subclass of UpDown for games of upset-downset on disjoint unions of
     directed (horizontally-oriented) complete bipartite graphs.
     '''
@@ -80,7 +78,7 @@ class CompleteBipartiteGame(ud.UpDown):
         n = len(dag)
         colors= {i: random.choice([-1,0,1]) for i in range(n)} \
             if RGB else None
-        ud.UpDown.__init__(self, dag, coloring = colors, reduced = True)
+        UpDown.__init__(self, dag, coloring = colors, reduced = True)
         self.graphs = graphs
 
             

@@ -1,14 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Charles Petersen and Jamison Barsotti
 """
 
 import digraph 
-import upDownPlot as udp                                                       
+import upDownPlot as udp
+import random                                               
 import matplotlib.pyplot as plt
-import random
-import time
 from IPython.display import clear_output
 
 class UpDown(object):
@@ -200,35 +197,33 @@ class UpDown(object):
         marker : matplotlib marker, optional
             the marker is the node style for the game plot. The default is 'o'.
             for all options: https://matplotlib.org/3.3.3/api/markers_api.html
-        agent_1 : str, optional
+        agent_1 : func, optional
             can play ageainst an agent or have two agents play against 
             one another. The default is None.
-        agent_2 : str, optional
+        agent_2 : func, optional
             can play ageainst an agent or have two agents play against 
             one another. The default is None.
-
         Returns
         -------
         None.
-
         '''
         initl_pos = self
         
         # who plays first
-        players = ['Up', 'Down']
+        players = ['up', 'down']
         if agent_1 == None or agent_2 == None:
             first = input("Which player will start, 'Up' or 'Down'? ")       
-            while first not in players:
+            while first.casefold() not in players:
                 first = input("Please choose 'Up' or 'Down'! ")
         else:
             first = random.choice(players)
-            print(first, 'will play first.')
-        
+            print(f'{first.casefold().capitalize()}, will play first.')
+        first = first.casefold()
         players.remove(first)
         second = players[0]
         
         # need to keep track of nodes colorws for each player
-        if first == 'Up':
+        if first == 'up':
             first_colors, second_colors = {0,1}, {-1,0}
         else:
             first_colors, second_colors = {-1,0}, {0,1}
@@ -240,9 +235,6 @@ class UpDown(object):
         clear_output(wait=True)
         board = udp.UpDownPlot(initl_pos, marker=marker)                     
         plt.pause(0.01)
-        
-        # a player token to keep track of whose turn it is.            
-        i = 0
     
         # play. The general theme is while the game still has nodes:
         # - if either player no longer has any moves, end.
@@ -251,6 +243,8 @@ class UpDown(object):
         # - change player to turn
         # - repeat
         cur_pos = initl_pos
+        cur_player = first
+        choice_dict = {'up': ' Blue or Green', 'down': ' Red or Green'}
         
         while cur_pos.dag:
             
@@ -258,135 +252,58 @@ class UpDown(object):
             first_options = list(filter(lambda x : cur_pos.coloring[x]
                                         in first_colors, cur_pos.dag))            
             second_options = list(filter(lambda x : cur_pos.coloring[x]
-                                         in second_colors, cur_pos.dag))              
+                                         in second_colors, cur_pos.dag))     
+            options_dict = {first: first_options, second: second_options}
             
             # if either player has no valid moves the 
             # game will end and the player with the player w/ valid moves 
             # remaining will be declared the winner. Note, cannot be inside 
             # gameplay loop and have both both players have no valid moves.
             if not first_options:
-                i=0
-                break         
-            if not second_options:
-                i=1
+                cur_player = first
                 break
+            if not second_options:
+                cur_player = second
+                break
+                      
+            if cur_player == first and agent_1 != None:
+                u = agent_1(cur_pos)
+                print(f'Agent choose {str(u)}')
+            elif cur_player == second and agent_2 != None:
+                u = agent_2(cur_pos)
+                print(f'Agent choose {str(u)}')
+            else:
+                u = int(input(f'{cur_player.capitalize()}, choose a node: '))
+                while not (u in options_dict[cur_player]):
+                    print(u, " is not a valid choice.")
+                    u = int(
+                        input(f'{cur_player.capitalize()},'\
+                              f' choose a {choice_dict[cur_player]},'\
+                              ' node: '))
+                    
+            if cur_player == 'up':
+                cur_pos = cur_pos.up_play(u)
+            else:
+                cur_pos = cur_pos.down_play(u) 
                 
-            # game play when first player is "Up".
-            if first == "Up":                
-                #first player's turn
-                if i % 2 == 0:                  
-                    if agent_1 == None:
-                        u = int(input(first + 
-                                      ", choose a node: "))
-                        while not (u in first_options):
-                            print(u, " is not a valid choice.")
-                            u = int(input(first + 
-                                          ", choose a Blue or Green node: "))
-                        cur_pos = cur_pos.up_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)               
-                    else:
-                        print("The computer is choosing...")
-                        time.sleep(1)    
-                        u = agent_1(cur_pos, first)
-                        cur_pos = cur_pos.up_play(u)
-                        print("The computer chose ", u)
-                        time.sleep(1)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)
-                # second player's turn
-                else:
-                    if agent_2 == None:
-                        u = int(input(second + 
-                                      ", choose a node: "))
-                        while not (u in second_options):
-                            print(u, " is not a valid choice.")
-                            u = int(input(second + 
-                                          ", choose a valid Red or Green node: "))
-                        cur_pos = cur_pos.down_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)
-                    else:
-                        print("The computer is choosing...")
-                        time.sleep(1)
-                        u = agent_2(cur_pos, second)
-                        print("The computer chose ", u)
-                        time.sleep(1)
-                        cur_pos = cur_pos.down_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)           
-            # play when first player is "Down".
-            else:           
-                #first player's turn.
-                if i % 2 == 0:
-                    if agent_1 == None:
-                        u = int(input(first + 
-                                      ", choose a node: "))
-                        while not (u in first_options):
-                            print(u, " is not a valid choice.")
-                            u = int(input(first + 
-                                          ", choose a Red or Green node: ")) 
-                        cur_pos = cur_pos.down_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)
-                    else:
-                        print("The computer is choosing...")
-                        time.sleep(1) 
-                        u = agent_1(cur_pos, first)
-                        print("The computer chose ", u)
-                        time.sleep(1)
-                        cur_pos = cur_pos.down_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)                        
-                #second player's turn
-                else:
-                    if agent_2 == None:
-                        u = int(input(second + 
-                                      ", choose a node: "))
-                        while not (u in second_options):
-                            print(u, " is not a valid choice.")
-                            u = int(input(second + 
-                                          ", choose a valid Blue or Green node: "))
-                        cur_pos = cur_pos.up_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)
-                    else:
-                        print("The computer is choosing...")
-                        time.sleep(1)    
-                        u = agent_2(cur_pos, second)
-                        print("The computer chose ", u)
-                        time.sleep(1)
-                        cur_pos = cur_pos.up_play(u)
-                        clear_output(wait=True)
-                        board = udp.UpDownPlot(initl_pos, marker=marker) 
-                        board.leave_subgraph_fig(cur_pos)
-                        plt.pause(0.01)  
-                        
-            # update player token (i.e. change player turn)
-            i += 1   
+            clear_output(wait=True)
+            board = udp.UpDownPlot(initl_pos, marker=marker) 
+            board.leave_subgraph_fig(cur_pos)
+            plt.pause(0.01)
             
+            if cur_player == 'up':
+                cur_player = 'down'
+            else:
+                cur_player = 'up'
+
         # declare the winner based on what value player token was at
         # when game ended.
-        if i % 2 == 0:
-            print("\n" + second + " wins!")
-            #board.figure.suptitle(second + " wins!")
+        if cur_player == 'up':
+            cur_player = 'down'
         else:
-            print("\n" + first + " wins!")
-            #board.figure.suptitle(first + " wins!")
+            cur_player = 'up'
+            
+        print(f'\n {cur_player.capitalize()} wins!')
         plt.pause(0.01)
         
 ##############################################################################    
