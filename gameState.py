@@ -23,15 +23,14 @@ class GameState(object):
     
     # class variables which control the shape of the encoded 
     # representation of upset-downset.
-    STATE_SHAPE = (4, 50, 50)
-    NUM_ACTIONS = 50
+    STATE_SHAPE = (4, 20, 20)
+    NUM_ACTIONS = 20
     UP = 0
     DOWN = 1
     
     def __init__(self, game, current_player):
-        
+        self.game = game 
         self.current_player = current_player
-        self.game = game if current_player == GameState.UP else -game
     
     @property
     def encoded_state(self):
@@ -48,11 +47,13 @@ class GameState(object):
         Returns
         -------
         list
-            nodes available to play in game state. (As seen from the 
-            perspective the current player.)
+            nodes available to play in game state.
 
         '''
-        return self.game.up_nodes()
+        moves = self.game.up_nodes() if self.current_player == GameState.UP \
+            else self.game.down_nodes()
+            
+        return moves
     
     def take_action(self, x):
         ''' Returns the next game state after node 'x' has been played.
@@ -70,12 +71,14 @@ class GameState(object):
         assert x in self.valid_actions(), 'Not a valid action.'
         
         # remove upset of x
-        option = self.game.up_play(x)
+        option = self.game.up_play(x) if self.current_player == GameState.UP \
+            else self.game.down_play(x)
         
+        # set the player to move i.e., the new current player
         player_to_move = GameState.DOWN \
-            if self.current_player == GameState.UP  else GameState.UP
+            if self.current_player == GameState.UP else GameState.UP
         
-        return GameState(option, player_to_move)
+        return GameState(option, player_to_move )
     
     def is_terminal_state(self):
         ''' Returns wether the current player has lost the game. I.e., a 
@@ -91,8 +94,7 @@ class GameState(object):
         return True if len(self.valid_actions()) == 0 else False
     
     def plot(self):
-        ''' Plots the upset-downset game underlying the game state from the 
-        current players perspective.
+        ''' Plots the underlying upset-downset game.
         
         Returns
         -------
@@ -126,16 +128,17 @@ class GameState(object):
         # if the move is to Down, get the negative game
         # and set the last channel to a constant 1
         encoded_state = np.zeros(GameState.STATE_SHAPE, dtype=np.int8)
-        if self.current_player == GameState.DOWN:
-            encoded_state[3,:,:] = 1
+        encoded_state[3,:,:] = self.current_player
             
         # we can actually do all of this faster by building the encoded 
         # state while finding the trasnisitive closure...too lazy
         
         # get the underlying dag, its transitive closure and node coloring
-        dag = self.game.dag
+        game_state = -self.game if self.current_player == GameState.DOWN \
+            else self.game
+        dag = game_state.dag
         tc = digraph.transitive_closure(dag)    
-        color_dict = self.game.coloring
+        color_dict = game_state.coloring
 
         # fill in the encoded representation
         for node in tc:
@@ -154,8 +157,8 @@ class GameState(object):
         return encoded_state       
     
     @staticmethod
-    def to_game(encoded_state):
-        '''Returns the upset-downset game from the 'encoded_state'.
+    def to_game_state(encoded_state):
+        '''Returns the game_state from the 'encoded_state'.
     
         Parameters
         ----------
@@ -187,11 +190,12 @@ class GameState(object):
         current_player = encoded_state[3,0,0]
         game = -game if current_player == GameState.DOWN else game
         
-        return game
+        return GameState(game, current_player)
     
     @staticmethod
     def state_generator(prcs_id, 
                         train_iter, 
+                        start=True,
                         markov_exp=1, 
                         extra_steps=0,
                         RGB=True):
@@ -199,7 +203,7 @@ class GameState(object):
         # process #prcs_id in last training iteration
         last_train_iter = train_iter - 1
         
-        if train_iter == 0:
+        if last_train_iter == 0 or not start:
             start_markov = None
         else:
             # get path to most recent self-play data
@@ -214,8 +218,8 @@ class GameState(object):
     
             # get the DAG from most recent play data
             encoded_state = data[0][0]
-            game = GameState.to_game(encoded_state)
-            start_markov = game.dag
+            game_state = GameState.to_game_state(encoded_state).game
+            start_markov = game_state.dag
         
         while True:
             random_player = np.random.choice([GameState.UP, GameState.DOWN])

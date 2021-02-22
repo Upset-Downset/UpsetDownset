@@ -54,8 +54,7 @@ def self_play(alpha_net,
     '''
     actions = np.arange(GameState.NUM_ACTIONS)
     state_generator = GameState.state_generator(prcs_id, 
-                                                train_iter, 
-                                                extra_steps=200)
+                                                train_iter)
     
     for k in range(num_plays):
         initial_state = next(state_generator)

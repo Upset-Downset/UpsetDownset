@@ -62,7 +62,8 @@ def evaluation(alpha_net,
     apprentice_wins = 0
     actions = np.arange(GameState.NUM_ACTIONS) 
     state_generator = GameState.state_generator(prcs_id, 
-                                                train_iter, 
+                                                train_iter,
+                                                start=False,
                                                 markov_exp=2)
     for k in range(num_plays):      
         #store states encountered
@@ -225,7 +226,7 @@ def multi_evaluation(train_iter,
         # get the results        
         apprentice_wins = results[-1] 
         
-        print(f'Finished {total_plays} games of evaluation.') 
+        print(f'Finished {num_plays*num_processes} games of evaluation.') 
     
     #results
     print(f'The apprentice model won {apprentice_wins} games ' \

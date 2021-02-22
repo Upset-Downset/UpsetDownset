@@ -4,12 +4,10 @@
 
 from gameState import GameState
 import utils 
-
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-
 import random
 
 def symmetries(train_data, num_symmetries):
@@ -53,7 +51,7 @@ def symmetries(train_data, num_symmetries):
 
 def train(replay_buffer,
           train_iter,
-          epochs,
+          passes,
           batch_size,
           num_symmetries,
           learning_rate,
@@ -97,20 +95,22 @@ def train(replay_buffer,
         momentum=momentum)
     
     # get self-play data
-    print('Loading train data into the replay buffer..')   
+    print('Loading training data into the replay buffer..')   
     train_data = utils.load_play_data('self_play', train_iter)
     replay_buffer.extend(train_data)
-    print(f'{len(train_data)} training examples added to the buffer.')
-    print(f'Buffer size : {len(replay_buffer)}')
+    print(f'{len(train_data)} training examples added to the replay buffer.')
+    print(f'Total buffer size : {len(replay_buffer)}')
     
     # train the apprentice net 
-    print(f'Performing {epochs} training steps on batches of' \
-          f' size {batch_size} @ {num_symmetries} symmetries' \
-          f' per training example...\n')
+    print(f'Performing {passes} training passes over the replay buffer')
+    print(f' @ {batch_size} training examples per batch, {num_symmetries}'\
+          f' symmetries per training example...\n')
     
     epoch = 0
     total_loss = 0
-    for _ in range(epochs):
+    total_passes = passes*len(replay_buffer)//batch_size
+    
+    for _ in range(total_passes):
         # get training batch (uniformly at random w/ repoacement)
         batch = random.choices(replay_buffer, k=batch_size)
         # get symmetries

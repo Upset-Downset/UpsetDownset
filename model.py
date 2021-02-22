@@ -7,11 +7,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # network architecture variables
-NUM_FILTERS = 64    # number of conv. filters in the input/residual blocks
-NUM_RES_BLOCKS = 5 # number of residual blocks
+NUM_FILTERS = 128    # number of conv. filters in the input/residual blocks
+NUM_RES_BLOCKS = 10 # number of residual blocks
 NUM_POL_FILTERS = 2 # number of conv. filters in the policy head
-NUM_VAL_FILTERS = 1 # number of conv. filters in the value head
-NUM_HIDDEN_VAL = 64 # size of the hidden layer in the value head
+NUM_VAL_FILTERS = 1# number of conv. filters in the value head
+NUM_HIDDEN_VAL = 128 # size of the hidden layer in the value head
 
 
 class ConvBlock(nn.Module):
