@@ -2,6 +2,7 @@
 @author: Charles Petersen and Jamison Barsotti
 """
 from upDown import UpDown
+import digraph
 
 def int_to_bin(n):
     ''' Returns the binary representation of the integer 'n'.
@@ -27,7 +28,6 @@ def nim_dag(heaps):
     heaps : list
         positive ints, each representing the size of the corresponding 
         Nim heap.
-
     Returns
     -------
     dict
@@ -67,9 +67,113 @@ class NimGame(UpDown):
 
         '''
         dag = nim_dag(heaps)
-        UpDown.__init__(self, dag, reduced = True)
+        coloring = {node:0 for node in dag}
+        UpDown.__init__(self, dag, coloring, reduced = True)
         self.heaps = heaps
-                           
+        
+    def up_play(self, x):
+        '''returns the nim game of upset-downset left after Up plays node 'x'.
+
+        Parameters
+        ----------
+        x : int (nonnegative)
+            node
+
+        Returns
+        -------
+        NimGame
+            the game after Up plays node 'x'.
+
+        '''
+        option_heaps = self.heaps.copy()
+        
+        # get sorted list of nodes
+        nodes = sorted(list(self.dag))
+        
+        # get index of x in sorted node list
+        x_idx = nodes.index(x)
+        # get heap index of node x
+        
+        x_heap_idx = 0
+        heap_sum = 0
+        while heap_sum <= x_idx:
+            heap_sum += option_heaps[x_heap_idx]
+            x_heap_idx += 1
+        x_heap_idx -= 1
+        
+        # remove nodes from heap containing x
+        x_upset = self.upset(x)
+        num_to_remove = len(x_upset)
+        new_heap_size = option_heaps[x_heap_idx] - num_to_remove
+        if new_heap_size > 0:
+            option_heaps[x_heap_idx] = new_heap_size 
+        else:
+            del option_heaps[x_heap_idx]
+            
+        # get node labels for option
+        option_nodes = sorted(list(set(self.dag) - set(x_upset)))
+        
+        # relabel option nodes and set coloring
+        n = len(option_nodes)
+        relabelling = {i: option_nodes[i] for i in range(n)}
+        option = NimGame(option_heaps)
+        option.dag = digraph.relabel(option.dag, relabelling)
+        option.coloring = {i:0 for i in option_nodes}
+        
+        return option
+    
+    def down_play(self, x):
+        '''returns the nim game of  upset-downset left after Down plays 
+        node 'x'.
+
+        Parameters
+        ----------
+        x : int (nonnegative)
+            node
+
+        Returns
+        -------
+        NimGame
+            the game after Down plays node 'x'.
+
+        '''
+        option_heaps = self.heaps.copy()
+        
+        # get sorted list of nodes
+        nodes = sorted(list(self.dag))
+        
+        # get index of x in sorted node list
+        x_idx = nodes.index(x)
+        
+        # get heap index of node x
+        x_heap_idx = 0
+        heap_sum = 0
+        while heap_sum < x_idx:
+            heap_sum += option_heaps[x_heap_idx]
+            x_heap_idx += 1
+        x_heap_idx -= 1
+        
+        # remove nodes from heap containing x
+        x_downset = self.downset(x)
+        num_to_remove = len(x_downset)
+        new_heap_size = option_heaps[x_heap_idx] - num_to_remove
+        if new_heap_size > 0:
+            option_heaps[x_heap_idx] = new_heap_size 
+        else:
+            del option_heaps[x_heap_idx]
+            
+        # get node labels for option
+        option_nodes = sorted(list(set(self.dag) - set(x_downset)))
+        
+        # relabel option nodes and set coloring
+        n = len(option_nodes)
+        relabelling = {i: option_nodes[i] for i in range(n)}
+        option = NimGame(option_heaps)
+        option.dag = digraph.relabel(option.dag, relabelling)
+        option.coloring = {i:0 for i in option_nodes}
+        
+        return option
+               
     def nim_sum(self):
         ''' Returns the Nim sum of the heaps in the game.
         
