@@ -125,7 +125,7 @@ class CompleteBipartiteGame(UpDown):
             
         # instantiate option, relable nodes and set coloring
         # (I wish I had a cleaner idea for this, but im lazy...)
-        option_nodes = list(set(nodes) - set(x_upset))
+        option_nodes = sorted(list(set(nodes) - set(x_upset)))
         option = CompleteBipartiteGame(option_graphs)
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
@@ -177,7 +177,7 @@ class CompleteBipartiteGame(UpDown):
             
         # instantiate option, relable nodes and set coloring
         # (I wish I had a cleaner idea for this, but im lazy...)
-        option_nodes = list(set(nodes) - set(x_downset))
+        option_nodes = sorted(list(set(nodes) - set(x_downset)))
         option = CompleteBipartiteGame(option_graphs)
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)

@@ -107,7 +107,7 @@ class NimGame(UpDown):
             del option_heaps[x_heap_idx]
             
         # instantiate option, relable nodes and set coloring
-        option_nodes = list(set(nodes) - set(x_upset))    
+        option_nodes = sorted(list(set(nodes) - set(x_upset)))  
         option = NimGame(option_heaps)
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
@@ -151,7 +151,7 @@ class NimGame(UpDown):
             del option_heaps[x_heap_idx]
         
         # instantiate option, relable nodes and set coloring
-        option_nodes = list(set(nodes) - set(x_downset))    
+        option_nodes = sorted(list(set(nodes) - set(x_downset))) 
         option = NimGame(option_heaps)
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
