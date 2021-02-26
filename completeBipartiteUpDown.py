@@ -4,7 +4,6 @@
 
 from upDown import UpDown
 import digraph
-import random
 
 def complete_bipartite_dag(graphs):
     ''' Returns a directed acyclic graph corresponding to the complete 
@@ -41,7 +40,8 @@ def complete_bipartite_dag(graphs):
         count = top_count + bottom_count
         # label elements on top and bottom.
         bot_elems = [i for i in range(last_count, last_count + bottom_count)]
-        top_elems = [i for i in range(last_count + bottom_count, last_count + count)]
+        top_elems = [i for i in 
+                     range(last_count + bottom_count, last_count + count)]
         # edges amongst bottom and top nodes
         graph_rels.update({i: top_elems for i in bot_elems})
         graph_rels.update({i:[] for i in top_elems})
@@ -184,5 +184,67 @@ class CompleteBipartiteGame(UpDown):
         option.coloring = {i:0 for i in option_nodes}
         
         return  option
+    
+    def __neg__(self):                
+        '''Returns the negative of the complete bipartite game of
+        upset-downset.
+    
+        Returns
+        -------
+        CompletBipartiteGame
+            the complete bipartite game of upset-downset on the reverse 
+            directed acyclic graph.
+
+        '''
+        flipped_graphs = []
+        for graph in self.graphs:
+            flipped_graphs.append((graph[1],graph[0]))
+        return CompleteBipartiteGame(flipped_graphs)
+
+    def __add__(self, other):              
+        '''Returns the (disjunctive) sum of games. **Relabels elements in 
+        'other' to consecutive nonnegative integers starting from len('self').
+        If 'other' is a complete bipartote game, then the sum will be too!
+        
+        Parameters
+        ----------
+        other : UpDown
+            a game of upset-downset.
+
+        Returns
+        -------
+        UpDown (CompleteBipartiteGame)
+            The upset-downset game on the disjoint union of directed acyclic 
+            graphs with unchanged colorings.
+            
+        Note: the sum retains all nodes ('other' being relabelled), edges 
+            and coloring from both 'self' and 'other' with no new edges added 
+            between 'self' and 'other'
+
+        '''
+        if isinstance(other, CompleteBipartiteGame):
+            add_graphs = self.graphs + other.graphs
+            return CompleteBipartiteGame(add_graphs)
+        else:
+            return super().__add__(other)
+    
+    def __sub__(self, other):
+        ''' Returns the difference of games.
+    
+        Parameters
+        ----------
+        other : UpDown
+            a game of upset-downset
+
+        Returns
+        -------
+        UpDown (CompleteBipartiteGame)
+            the upset-downset game on the disjoint union of the directed 
+            acyclic graph of 'self' with unchanged coloring and the reverse
+            of the the directed acyclic graph of 'other' with the opposite 
+            coloring.
+
+        '''
+        return self + (-other)
 
             

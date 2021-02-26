@@ -31,15 +31,16 @@ class GameState(object):
     def __init__(self, game, current_player):
         self.game = game 
         self.current_player = current_player
+        self._encoded_state = None
     
     @property
     def encoded_state(self):
-        return self.encode()
+        if self._encoded_state is None:
+            self._encoded_state = self.encode()
         
     @encoded_state.setter
     def encoded_state(self, x):
-        if self.encoded_state is None:
-            self.encoded_state = x
+        self._encoded_state = x
         
     def valid_actions(self):
         '''Returns the valid actions from the game state.
@@ -78,7 +79,7 @@ class GameState(object):
         player_to_move = GameState.DOWN \
             if self.current_player == GameState.UP else GameState.UP
         
-        return GameState(option, player_to_move )
+        return GameState(option, player_to_move)
     
     def is_terminal_state(self):
         ''' Returns wether the current player has lost the game. I.e., a 
@@ -133,7 +134,8 @@ class GameState(object):
         # we can actually do all of this faster by building the encoded 
         # state while finding the trasnisitive closure...too lazy
         
-        # get the underlying dag, its transitive closure and node coloring
+        # get the underlying dag, its transitive closure and node coloring.
+        # make sure viewing board from correct persepective
         game_state = -self.game if self.current_player == GameState.DOWN \
             else self.game
         dag = game_state.dag

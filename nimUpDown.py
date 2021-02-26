@@ -3,6 +3,7 @@
 """
 from upDown import UpDown
 import digraph
+import copy
 
 def int_to_bin(n):
     ''' Returns the binary representation of the integer 'n'.
@@ -194,3 +195,62 @@ class NimGame(UpDown):
             game is a first player win.
         '''        
         return 'Previous' if self.nim_sum() == 0 else 'Next'
+    
+    def __neg__(self):                
+        '''Returns the negative of the nim game. (Since a game of nim is its 
+        own negative a copy of 'self' is returned.)
+    
+        Returns
+        -------
+        NimGame
+            the negative of the nim game of upset-downset.
+
+        '''
+        return copy.deepcopy(self)
+
+    def __add__(self, other):              
+        '''Returns the (disjunctive) sum of nim games of upset-dowmnset.
+        . **Relabels elements in 'other to consecutive nonnegative integers
+        starting from len('self'). If 'other' is also a nim game then the 
+        sum will be too!
+        
+        Parameters
+        ----------
+        other : UpDown
+            a game of upset-downset.
+
+        Returns
+        -------
+        UpDown (NimGame)
+            The upset-downset game on the disjoint union of directed acyclic 
+            graphs with unchanged colorings.
+            
+        Note: the sum retains all nodes ('other' being relabelled), edges 
+            and coloring from both 'self' and 'other' with no new edges added 
+            between 'self' and 'other'
+
+        '''
+        if isinstance(other, NimGame):
+            add_heaps = self.heaps + other.heaps
+            return NimGame(add_heaps)
+        else:
+            return super().__add__(other)
+    
+    def __sub__(self, other):
+        ''' Returns the difference of games.
+    
+        Parameters
+        ----------
+        other : UpDown
+            a game of upset-downset
+
+        Returns
+        -------
+        UpDown (NimGame)
+            the upset-downset game on the disjoint union of the directed 
+            acyclic graph of 'self' with unchanged coloring and the reverse
+            of the the directed acyclic graph of 'other' with the opposite 
+            coloring.
+
+        '''
+        return self + (-other)

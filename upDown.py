@@ -4,7 +4,8 @@
 
 import digraph 
 import upDownPlot as udp
-import random                                               
+import random  
+import copy                                             
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
 
@@ -45,6 +46,8 @@ class UpDown(object):
             self.coloring = {x:0 for x in self.dag}
         else:
             self.coloring = coloring
+        self._layout = None
+        
     
 ##############################################################################
 ################################## COLORING ###################################
@@ -267,10 +270,10 @@ class UpDown(object):
                 break
                       
             if cur_player == first and agent_1 != None:
-                u = agent_1(cur_pos)
+                u = agent_1(cur_pos, player_to_move=cur_player)
                 print(f'Agent choose {str(u)}')
             elif cur_player == second and agent_2 != None:
-                u = agent_2(cur_pos)
+                u = agent_2(cur_pos, player_to_move=cur_player)
                 print(f'Agent choose {str(u)}')
             else:
                 u = int(input(f'{cur_player.capitalize()}, choose a node: '))
@@ -406,7 +409,7 @@ class UpDown(object):
         return get_outcome(self, nodes, outcomes_store)
     
     def __neg__(self):                
-        '''Returns the negative of the game.
+        '''Returns the negative of the game. 
     
         Returns
         -------
@@ -416,7 +419,8 @@ class UpDown(object):
 
         '''
         dual = digraph.reverse(self.dag)
-        reverse_coloring = {x: -self.coloring[x] for x in self.dag}
+        reverse_coloring = {x: -self.coloring[x] for x in self.dag} 
+        
         return UpDown(dual, reverse_coloring, reduced = True)
 
     def __add__(self, other):              
