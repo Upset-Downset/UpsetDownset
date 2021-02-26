@@ -31,7 +31,7 @@ def alpha(game, player_to_move, look_ahead=800):
     net = utils.load_model('alpha', device)
     
     # get game state
-    current_player = GameState.UP if player_to_move =='Up' \
+    current_player = GameState.UP if player_to_move =='up' \
         else GameState.DOWN
     game_state = GameState(game, current_player)
     
@@ -65,6 +65,6 @@ def random_agent(game, player):
 
     '''
     # Determine which nodes can be played
-    options = game.up_nodes() if player == 'Up' else game.down_nodes()
+    options = game.up_nodes() if player == 'up' else game.down_nodes()
 
     return random.choice(options)
