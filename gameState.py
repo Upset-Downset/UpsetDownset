@@ -37,6 +37,7 @@ class GameState(object):
     def encoded_state(self):
         if self._encoded_state is None:
             self._encoded_state = self.encode()
+        return self._encoded_state
         
     @encoded_state.setter
     def encoded_state(self, x):
@@ -159,7 +160,7 @@ class GameState(object):
         return encoded_state       
     
     @staticmethod
-    def to_game_state(encoded_state):
+    def decode(encoded_state):
         '''Returns the game_state from the 'encoded_state'.
     
         Parameters
@@ -220,7 +221,7 @@ class GameState(object):
     
             # get the DAG from most recent play data
             encoded_state = data[0][0]
-            game_state = GameState.to_game_state(encoded_state).game
+            game_state = GameState.decode(encoded_state).game
             start_markov = game_state.dag
         
         while True:

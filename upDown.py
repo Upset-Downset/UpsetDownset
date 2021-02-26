@@ -48,7 +48,16 @@ class UpDown(object):
             self.coloring = coloring
         self._layout = None
         
+    @property
+    def layout(self):
+        if self._layout is None:
+            self._layout = digraph.hasse_layout(self.dag)
+        return self._layout
     
+    @layout.setter
+    def layouy(self, x):
+        self._layout = x
+        
 ##############################################################################
 ################################## COLORING ###################################
 ##############################################################################
@@ -418,10 +427,24 @@ class UpDown(object):
             and opposite coloring.
 
         '''
+        # get layoiut of game flipped upseide down
+        components = digraph.connected_components(self.dag)
+        levels_dict = digraph.longest_path_lengths(self.dag, 
+                                                   direction = 'incoming')
+        flipped_layout = {}
+        for component in components:
+            height = max(levels_dict[x] for x in component)
+            flipped_layout.update(
+                {x: (self.layout[x][0], height-self.layout[x][1]) 
+                 for x in component})
+        # get reversed graph and inverted coloring
         dual = digraph.reverse(self.dag)
         reverse_coloring = {x: -self.coloring[x] for x in self.dag} 
+        # instantiate game and set layout
+        negative = UpDown(dual, reverse_coloring, reduced=True)
+        negative._layout = flipped_layout
         
-        return UpDown(dual, reverse_coloring, reduced = True)
+        return negative
 
     def __add__(self, other):              
         '''Returns the (disjunctive) sum of games. **Relabels elements in 'other'

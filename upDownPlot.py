@@ -59,7 +59,7 @@ class UpDownPlot(object):
         colors = game.coloring
         nodes = game.dag.keys()
         edges = digraph.edge_list(dag)
-        pos = digraph.hasse_layout(dag)            
+        pos = game.layout            
             
         # set up the figure and an axes. The empty dicts
         # will be filled by pointers to the lines, vertices 
