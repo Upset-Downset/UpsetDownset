@@ -8,7 +8,7 @@ import random
 import torch
 import numpy as np
 
-def alpha(game, player_to_move, look_ahead=800):
+def alpha_agent(game, player_to_move, look_ahead=800):
     '''Returns the deterministic move suggetsed by current best model after 
     performing an MCTS with 'search_iters' iterations on 'game_state'.
 
@@ -46,14 +46,14 @@ def alpha(game, player_to_move, look_ahead=800):
     
     return move
 
-def random_agent(game, player):
+def random_agent(game, player_to_move):
     ''' Returns a random move in the upset-downset 'game' for 'player'.
     
     Parameters
     ----------
     game : UpDown
         a game of upset-downset
-    player : str
+    player_to_move : str
         'Up' if the agent is to be the Up player, and 'Down' if the agent is
         to be the Down player.
 
@@ -65,6 +65,6 @@ def random_agent(game, player):
 
     '''
     # Determine which nodes can be played
-    options = game.up_nodes() if player == 'up' else game.down_nodes()
+    options = game.up_nodes() if player_to_move == 'up' else game.down_nodes()
 
     return random.choice(options)
