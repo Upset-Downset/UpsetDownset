@@ -5,7 +5,6 @@
 from gameState import GameState
 import numpy as np
 import math
-import torch
 
 class PUCTNode(object):
     '''Abstract class for construction of a node in a polynomial 
@@ -74,14 +73,11 @@ class PUCTNode(object):
             self.edges[a] = PUCTNode(next_state, parent=self, action=a)
         return self.edges[a]
     
-    def PUCT_action(self, c_puct = 1.0, eps = 0.25, eta = 1.0):
-        ''' Returns next action via the PUCT formula.
+    def add_dirichlet_noise(self, eps = 0.25, eta = 1.0):
+        ''' Returns edge probs with Dirichlet noise added.
         
         Parameters
         ----------
-        c_puct : float, optional
-            constant which partially controls level of exploration. 
-            The default is 1.0.
         eps : float, optional
             constant between 0 and 1. Partially controls the level
             of exploration from a root node. The default is 0.25.
@@ -92,15 +88,34 @@ class PUCTNode(object):
 
         Returns
         -------
-        puct_action : int (nonnegative)
-            action chosen by PUCT formula.
+        None.
 
         '''
         probs = np.copy(self.edge_probs)
         # if self is root, add dirichlet noise
-        if self.parent == None:
-            probs = (1-eps)*probs \
-                + eps*np.random.dirichlet([eta]*GameState.NUM_ACTIONS)
+        probs = (1-eps)*probs + \
+            eps*np.random.dirichlet([eta]*GameState.NUM_ACTIONS)
+            
+        return probs
+    
+    def PUCT_action(self, c_puct = 1.0):
+        ''' Returns next action via the PUCT formula.
+        
+        Parameters
+        ----------
+        c_puct : float, optional
+            constant which partially controls level of exploration. 
+            The default is 1.0.
+
+        Returns
+        -------
+        puct_action : int (nonnegative)
+            action chosen by PUCT formula.
+
+        '''
+        # if self is root, add dirichlet noise
+        probs = self.add_dirichlet_noise() if self.parent is None \
+            else self.edge_probs
         # mean action values
         # 1-D numpy array: 
         # action a --> Q(self.state, a) for all actions a
@@ -202,76 +217,4 @@ class PUCTNode(object):
         self.parent = None
         self.action = None
         return self         
-            
-            
-def MCTS(root, net, device, search_iters):
-    '''Performs an MCTS from 'root' and returns 'root'.
-
-    Parameters
-    ----------
-    root : PUCTNode
-        root of tree.
-    net : AlphaZeroNet
-        model used for agent.
-    device : str
-        the device to run the model on ('cuda' if available, else 'cpu').
-    search_iters : int (nonnegative)
-        the number of iterations of search to be performed. 
-    Returns
-    -------
-    root : PUCTNode
-        root of tree with edge visit counts and action values 
-        from MCTS updated via backup. 
-
-    '''
-    for _ in range(search_iters):
-        leaf = root.find_leaf()
-        # if leaf is a terminal state, i.e. previous player won
-        if leaf.state.is_terminal_state():
-            # the value should be from the current players perspective
-            value = -1
-            leaf.backup(value)
-        # no winner yet
-        else:
-            # query the net
-            encoded_leaf_state = torch.from_numpy(
-                leaf.state.encoded_state).float().to(device)
-            probs, value = net(encoded_leaf_state)
-            del encoded_leaf_state; torch.cuda.empty_cache()
-            probs = probs.detach().cpu().numpy().reshape(-1)
-            value = value.item()
-            # expand and backup\
-            actions = leaf.state.valid_actions()
-            leaf.expand(probs, actions)
-            leaf.backup(value)
-            
-    return root
-
-def MCTS_policy(root, temp):
-    ''' Returns the probabilities of choosing an edge from 'root'. Depending 
-    on 'temp', probabilities are either proprtional to the exponential edge 
-    visit count or deterministic, choosing the edge with highest visit count.
-    
-    Parameters
-    ----------
-    root : PUCTNode
-        root of tree
-    temp : float
-        controls exploration. If 0, the policy is deterministic and the
-        edge with highest visit count is chosen. 
-
-    Returns
-    -------
-    policy : 1-D numpy array of shape (gs.UNIV,)
-        probabilities of chosing edges from 'root'
-
-    '''
-    if temp == 0:
-        policy = np.zeros(GameState.NUM_ACTIONS, dtype=np.float32)
-        max_visit = np.argmax(root.edge_visits)
-        policy[max_visit] = 1
-    else:
-        policy = ((root.edge_visits)**(1/temp))/np.sum((
-            root.edge_visits)**(1/temp))
-    return policy
     

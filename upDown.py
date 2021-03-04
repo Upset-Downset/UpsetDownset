@@ -8,6 +8,7 @@ import random
 import copy                                             
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
+import time
 
 class UpDown(object):
     ''' Abstract class for construction of an upset-downset game from a 
@@ -281,9 +282,11 @@ class UpDown(object):
             if cur_player == first and agent_1 != None:
                 u = agent_1(cur_pos, player_to_move=cur_player)
                 print(f'Agent choose {str(u)}')
+                time.sleep(1)
             elif cur_player == second and agent_2 != None:
                 u = agent_2(cur_pos, player_to_move=cur_player)
                 print(f'Agent choose {str(u)}')
+                time.sleep(1)
             else:
                 u = int(input(f'{cur_player.capitalize()}, choose a node: '))
                 while not (u in options_dict[cur_player]):

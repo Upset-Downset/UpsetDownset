@@ -12,9 +12,6 @@ from randomUpDown import RandomGame
 from upDown import UpDown
 import digraph
 import numpy as np
-import glob
-import os
-import pickle
 
 class GameState(object):
     '''An abstract class for representing a upset-downset game in a format 
@@ -32,7 +29,7 @@ class GameState(object):
         self.game = game 
         self.current_player = current_player
         self._encoded_state = None
-    
+        
     @property
     def encoded_state(self):
         if self._encoded_state is None:
@@ -160,7 +157,7 @@ class GameState(object):
         return encoded_state       
     
     @staticmethod
-    def decode(encoded_state):
+    def to_game_state(encoded_state):
         '''Returns the game_state from the 'encoded_state'.
     
         Parameters
@@ -196,34 +193,10 @@ class GameState(object):
         return GameState(game, current_player)
     
     @staticmethod
-    def state_generator(prcs_id, 
-                        train_iter, 
-                        start=True,
-                        markov_exp=1, 
+    def state_generator(markov_exp=1, 
                         extra_steps=0,
                         RGB=True):
-        # get the final step in the Markov chain taking place in 
-        # process #prcs_id in last training iteration
-        last_train_iter = train_iter - 1
-        
-        if last_train_iter == 0 or not start:
-            start_markov = None
-        else:
-            # get path to most recent self-play data
-            search = f'./train_data/self_play_data/iter_{last_train_iter}'
-            files = glob.glob(
-                f'{search}/self_play_iter{last_train_iter}_prcs{prcs_id}*')
-            most_recent = max(files, key=os.path.getctime)
-            # unpickle most recent self play data
-            file  = open(most_recent, 'rb')
-            data = pickle.load(file)
-            file.close()
-    
-            # get the DAG from most recent play data
-            encoded_state = data[0][0]
-            game_state = GameState.decode(encoded_state).game
-            start_markov = game_state.dag
-        
+        start_markov = {i: [] for i in range(GameState.NUM_ACTIONS)}
         while True:
             random_player = np.random.choice([GameState.UP, GameState.DOWN])
             random_game = RandomGame(GameState.NUM_ACTIONS, 

@@ -3,12 +3,10 @@
 """
 
 from gameState import GameState
-import utils 
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torch.optim as optim
-import random
+import ray
 
 def symmetries(train_data, num_symmetries):
     '''Returns 'num_samples' symmetries of each example in 'train_data'.
@@ -49,13 +47,12 @@ def symmetries(train_data, num_symmetries):
             
     return sym_train_data
 
-def train(replay_buffer,
-          train_iter,
-          passes,
+def train(agent,
+          optimizer,
+          scheduler, 
           batch_size,
           num_symmetries,
-          learning_rate,
-          momentum):
+          num_epochs):
     ''' Takes 'num_symmetries' of each training example from self_play 
     iteration 'train_iter' and perfoms a single training pass in batch sizes 
     of 'batch_size'.
@@ -81,48 +78,19 @@ def train(replay_buffer,
     None.
 
     '''
-    
-    #initialze apprentice net and load paramaters 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'   
-    print(f'Loading apprentice model for training on device : {device}...')    
-    apprentice_net = utils.load_model('apprentice', device)
-    
-    # initialize optimizer
-    print('Initializing SGD optimizer...')   
-    optimizer = optim.SGD(
-        apprentice_net.parameters(),
-        lr=learning_rate,
-        momentum=momentum)
-    
-    # get self-play data
-    print('Loading training data into the replay buffer..')   
-    train_data = utils.load_play_data('self_play', train_iter)
-    replay_buffer.extend(train_data)
-    print(f'{len(train_data)} training examples added to the replay buffer.')
-    print(f'Total buffer size : {len(replay_buffer)}')
-    
-    # train the apprentice net 
-    print(f'Performing {passes} training passes over the replay buffer')
-    print(f' @ {batch_size} training examples per batch, {num_symmetries}'\
-          f' symmetries per training example...\n')
-    
-    epoch = 0
+    train_idx = 1
     total_loss = 0
-    total_passes = passes*len(replay_buffer)//batch_size
-    
-    for _ in range(total_passes):
-        # get training batch (uniformly at random w/ repoacement)
-        batch = random.choices(replay_buffer, k=batch_size)
-        # get symmetries
-        batch = symmetries(batch, num_symmetries=num_symmetries)
-        batch_states, batch_probs, batch_values = zip(*batch)
+    for _ in range(num_epochs):
+        batch = ray.get(scheduler.get_training_batch.remote(batch_size))
+        batch_sym = symmetries(batch, num_symmetries)
+        batch_states, batch_probs, batch_values = zip(*batch_sym)
             
-        # query the apprentice net
+        # query the agent
         optimizer.zero_grad()
-        states = torch.FloatTensor(batch_states).to(device)
-        probs = torch.FloatTensor(batch_probs).to(device)
-        values = torch.FloatTensor(batch_values).to(device)
-        out_logits, out_values = apprentice_net(states)
+        states = torch.FloatTensor(batch_states).to(agent.device)
+        probs = torch.FloatTensor(batch_probs).to(agent.device)
+        values = torch.FloatTensor(batch_values).to(agent.device)
+        out_logits, out_values = agent.predict(states, training=True)
             
         # calculate loss
         loss_value = F.mse_loss(out_values.squeeze(-1), values)
@@ -130,24 +98,18 @@ def train(replay_buffer,
         loss_policy = loss_policy.sum(dim=1).mean()
         loss = loss_policy + loss_value
         
+        total_loss += loss.item()
         # step
         loss.backward()
         optimizer.step()
-        epoch +=1
-        
-        # get rolling avg loss
-        total_loss += loss.item()     
-        if epoch % 10 == 0:
-            print(f'Average loss over {epoch} epochs : {total_loss/epoch}')
-            
+        if train_idx %10 == 0:
+            #print(f'Avg. loss over {train_idx} epochs: {total_loss/train_idx}')
+            pass
         del states; del probs; del values
         del out_logits; del out_values; 
         del loss_policy; del loss_value
         torch.cuda.empty_cache
         
-    # save model parameters  
-    print('Saving apprentice model parameters...\n')
-    utils.save_model(apprentice_net, 'apprentice', train_iter) 
+        train_idx += 1
     
-    del apprentice_net; torch.cuda.empty_cache()
         
