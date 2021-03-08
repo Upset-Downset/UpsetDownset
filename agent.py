@@ -7,23 +7,38 @@ from mcts import PUCTNode
 import numpy as np
 import torch
 import os
+from config import *
 
 class Agent(object):
-    def __init__(self, alpha=False, apprentice=False, random=False):
+    def __init__(self, alpha=False, apprentice=False, initial=False, path=None, device=DEVICE):
         self.alpha = alpha
         self.apprentice = apprentice
-        self.random = random
+        self.initial = initial
         self._model = None
-        self.device = torch.device(
-            'cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.path = path
+        
+        if device:
+            self.device = device
+        else:    
+            self.device = torch.device(
+                'cuda:0' if torch.cuda.is_available() else 'cpu')
+        
         
     @property
     def model(self):
         if self._model is None:
             # initialize model
             self._model = AlphaZeroNet()
+            # if a path variable is given, use that to load agent
+            if self.path:
+                self._model.load_state_dict(
+                    torch.load(self.path, 
+                               map_location=self.device))
+                # put model on device
+                self._model.to(self.device)
+                return self._model
             # if model has never been initialized
-            if not os.path.isdir('./model_data'):
+            elif not os.path.isdir('./model_data'):
                 os.mkdir('./model_data')  
                 torch.save(self._model.state_dict(),
                            './model_data/initial_model.pt')
@@ -43,7 +58,7 @@ class Agent(object):
                         './model_data/apprentice_model.pt', 
                         map_location=self.device))
             # random agent
-            elif self.random:
+            elif self.initial:
                 self._model.load_state_dict(
                     torch.load(
                         './model_data/initial_model.pt', 
@@ -53,6 +68,14 @@ class Agent(object):
             self._model.to(self.device)
 
         return self._model
+    
+    def next_move(self, game, player, search_iters):
+        player_dict = {'up': UP, 'down': DOWN}
+        game_state = GameState(game, player_dict[player.casefold()])
+        root = PUCTNode(game_state)
+        policy = self.MCTS(root, search_iters, 0)
+        return np.argmax(policy)
+        
     
     def predict(self, encoded_game_state, training=False):
         # query the net
@@ -99,6 +122,7 @@ class Agent(object):
         return policy
     
     def approximate_outcome(self, game, search_iters):
+        self.model.eval()
         # game state from each players persepective
         up_start = GameState(game, GameState.UP)
         down_start = GameState(game, GameState.DOWN)
@@ -135,4 +159,5 @@ class Agent(object):
         elif up_start_out == 'N' and down_start_out == 'P':
             approx_out = 'Up'
             
+        self.model.train()
         return approx_out
