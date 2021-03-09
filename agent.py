@@ -10,10 +10,7 @@ import os
 from config import *
 
 class Agent(object):
-    def __init__(self, alpha=False, apprentice=False, initial=False, path=None, device=DEVICE):
-        self.alpha = alpha
-        self.apprentice = apprentice
-        self.initial = initial
+    def __init__(self, path=None, device=DEVICE):
         self._model = None
         self.path = path
         
@@ -34,42 +31,46 @@ class Agent(object):
                 self._model.load_state_dict(
                     torch.load(self.path, 
                                map_location=self.device))
-                # put model on device
-                self._model.to(self.device)
-                return self._model
-            # if model has never been initialized
-            elif not os.path.isdir('./model_data'):
-                os.mkdir('./model_data')  
-                torch.save(self._model.state_dict(),
-                           './model_data/initial_model.pt')
-                torch.save(self._model.state_dict(),
-                           './model_data/apprentice_model.pt')
-                torch.save(self._model.state_dict(),
-                           './model_data/alpha_model.pt')
+            #put model on device
+            self._model.to(self.device)
+        return self._model
+    
+    def training_initialization(self):
+        self.model
+        if not os.path.isdir('./model_data'):
+            os.mkdir('./model_data')  
+            torch.save(self._model.state_dict(),
+                       './model_data/initial_model.pt')
+            torch.save(self._model.state_dict(),
+                       './model_data/apprentice_model.pt')
+            torch.save(self._model.state_dict(),
+                       './model_data/alpha_model.pt')
+        else:
+            override = input('Agent directory already exists? Load [alpha], [apprentice], or\
+                            [initial]? ')
             # alpha agent
-            if self.alpha:
+            if override == 'alpha':
                 self._model.load_state_dict(
                     torch.load('./model_data/alpha_model.pt', 
-                               map_location=self.device))  
+                               map_location=self.device))
+                self.path = './model_data/alpha_model.pt'
             #apprentice agent    
-            elif self.apprentice:
+            elif override == 'apprentice':
                 self._model.load_state_dict(
                     torch.load(
                         './model_data/apprentice_model.pt', 
                         map_location=self.device))
+                self.path = './model_data/apprentice_model.pt'
             # random agent
-            elif self.initial:
+            elif override == 'initial':
                 self._model.load_state_dict(
                     torch.load(
                         './model_data/initial_model.pt', 
-                        map_location=self.device))
-
-            #put model on device
-            self._model.to(self.device)
-
+                    map_location=self.device))
+                self.path = './model_data/initial_model.pt'
         return self._model
     
-    def next_move(self, game, player, search_iters):
+    def predict_next_move(self, game, player, search_iters):
         player_dict = {'up': UP, 'down': DOWN}
         game_state = GameState(game, player_dict[player.casefold()])
         root = PUCTNode(game_state)
