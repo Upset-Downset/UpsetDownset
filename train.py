@@ -1,8 +1,7 @@
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-
-from gameState import GameState
+from config import *
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -37,7 +36,7 @@ def symmetries(train_data, num_symmetries):
               
         for _ in range(num_symmetries):
             # get random permutation on dim # letters
-            p = np.random.permutation(GameState.NUM_ACTIONS)
+            p = np.random.permutation(MAX_NODES)
             # re-index nodes by permuting columns and rows
             state_sym = state[:,:,p]
             state_sym = state_sym[:,p,:]
@@ -50,9 +49,8 @@ def symmetries(train_data, num_symmetries):
 def train(agent,
           optimizer,
           scheduler, 
-          batch_size,
-          num_symmetries,
-          num_epochs):
+          num_symmetries=NUM_SYMMETRIES,
+          num_epochs=NUM_EPOCHS):
     ''' Takes 'num_symmetries' of each training example from self_play 
     iteration 'train_iter' and perfoms a single training pass in batch sizes 
     of 'batch_size'.
@@ -81,7 +79,7 @@ def train(agent,
     train_idx = 1
     total_loss = 0
     for _ in range(num_epochs):
-        batch = ray.get(scheduler.get_training_batch.remote(batch_size))
+        batch = ray.get(scheduler.get_training_batch.remote())
         batch_sym = symmetries(batch, num_symmetries)
         batch_states, batch_probs, batch_values = zip(*batch_sym)
             
@@ -102,9 +100,10 @@ def train(agent,
         # step
         loss.backward()
         optimizer.step()
-        if train_idx %10 == 0:
-            #print(f'Avg. loss over {train_idx} epochs: {total_loss/train_idx}')
-            pass
+        
+        if train_idx %500 == 0:
+            print(f'Avg. loss over {train_idx} epochs: {total_loss/train_idx}')
+            
         del states; del probs; del values
         del out_logits; del out_values; 
         del loss_policy; del loss_value

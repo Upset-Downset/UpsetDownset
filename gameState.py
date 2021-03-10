@@ -8,8 +8,9 @@ I.e., if it is Downs move in the game, then we change perspective so
 that Up is to move in the negtive of the game.
 
 """
-from randomUpDown import RandomGame
+from config import *
 from upDown import UpDown
+from randomDag import uniform_random_dag
 import digraph
 import numpy as np
 
@@ -20,10 +21,6 @@ class GameState(object):
     
     # class variables which control the shape of the encoded 
     # representation of upset-downset.
-    STATE_SHAPE = (4, 20, 20)
-    NUM_ACTIONS = 20
-    UP = 0
-    DOWN = 1
     
     def __init__(self, game, current_player):
         self.game = game 
@@ -49,7 +46,7 @@ class GameState(object):
             nodes available to play in game state.
 
         '''
-        moves = self.game.up_nodes() if self.current_player == GameState.UP \
+        moves = self.game.up_nodes() if self.current_player == UP \
             else self.game.down_nodes()
             
         return moves
@@ -70,12 +67,12 @@ class GameState(object):
         assert x in self.valid_actions(), 'Not a valid action.'
         
         # remove upset of x
-        option = self.game.up_play(x) if self.current_player == GameState.UP \
+        option = self.game.up_play(x) if self.current_player == UP \
             else self.game.down_play(x)
         
         # set the player to move i.e., the new current player
-        player_to_move = GameState.DOWN \
-            if self.current_player == GameState.UP else GameState.UP
+        player_to_move = DOWN if self.current_player == UP \
+            else UP
         
         return GameState(option, player_to_move)
     
@@ -122,11 +119,11 @@ class GameState(object):
             move and 1 if Down is to move. 
      
         '''
-        assert len(self.game) <= GameState.NUM_ACTIONS, 'The game is too large.'
+        assert len(self.game) <= MAX_NODES, 'The game is too large.'
 
         # if the move is to Down, get the negative game
         # and set the last channel to a constant 1
-        encoded_state = np.zeros(GameState.STATE_SHAPE, dtype=np.int8)
+        encoded_state = np.zeros(ENCODED_STATE_SHAPE, dtype=np.int8)
         encoded_state[3,:,:] = self.current_player
             
         # we can actually do all of this faster by building the encoded 
@@ -134,7 +131,7 @@ class GameState(object):
         
         # get the underlying dag, its transitive closure and node coloring.
         # make sure viewing board from correct persepective
-        game_state = -self.game if self.current_player == GameState.DOWN \
+        game_state = -self.game if self.current_player == DOWN \
             else self.game
         dag = game_state.dag
         tc = digraph.transitive_closure(dag)    
@@ -188,23 +185,24 @@ class GameState(object):
         # get game from absolute perspective
         game = UpDown(dag, coloring=colors)
         current_player = encoded_state[3,0,0]
-        game = -game if current_player == GameState.DOWN else game
+        game = -game if current_player == DOWN else game
         
         return GameState(game, current_player)
     
     @staticmethod
-    def state_generator(markov_exp=1, 
-                        extra_steps=0,
-                        RGB=True):
-        start_markov = {i: [] for i in range(GameState.NUM_ACTIONS)}
+    def state_generator(markov_exp, color_dist=RGB_DIST):
+        start_markov = {i: [] for i in range(MAX_NODES)}
         while True:
-            random_player = np.random.choice([GameState.UP, GameState.DOWN])
-            random_game = RandomGame(GameState.NUM_ACTIONS, 
-                                     markov_exp=markov_exp,
-                                     extra_steps=extra_steps,
-                                     RGB=RGB, 
-                                     start=start_markov)
+            random_player = np.random.choice([UP, DOWN])
+            random_dag = uniform_random_dag(MAX_NODES, 
+                                            exp=markov_exp,
+                                            X_0=start_markov)
+            RGB = np.ranom.choice([True, False], p=RGB_DIST)
+            random_colors = {i: np.random.choice([-1,0,1]) 
+                             for i in range(MAX_NODES)} if RGB else \
+                {i: 0 for i in range(MAX_NODES)}
+            random_game = UpDown(random_dag, random_colors)
             random_state = GameState(random_game, random_player)
-            start_markov = random_game.dag
+            start_markov = random_dag
             
             yield random_state

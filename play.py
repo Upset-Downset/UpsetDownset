@@ -1,27 +1,33 @@
 """
 @author: Charles Petersen and Jamison Barsotti
 """
+from config import *
 from gameState import GameState
 from agent import Agent
 from mcts import PUCTNode
 import numpy as np
 import torch
+import pickle
+import os
 import ray
 
-@ray.remote(num_gpus=0.25)
+@ray.remote(num_gpus=0.125)
 def self_play(scheduler,
               process_id,
-              search_iters,
-              temp, 
-              temp_thrshld):
+              search_iters=SELF_PLAY_SEARCH_ITERS,
+              markov_exp=SELF_PLAY_MARKOV_EXP,
+              temp=TEMP, 
+              temp_thrshld=TEMP_THRSHLD):
     
     print(f'Self-play process {process_id} in progress...')
     # get agent
     agent = Agent(alpha=True)
     agent.model.eval()
 
-    actions = np.arange(GameState.NUM_ACTIONS)
-    state_generator = GameState.state_generator()
+    actions = np.arange(MAX_NODES)
+    state_generator = GameState.state_generator(markov_exp)
+    
+    game_id = 1
     
     while True:
         # check for parameter updates after evaluation
@@ -62,12 +68,20 @@ def self_play(scheduler,
         
         scheduler.add_training_data.remote(train_data)
         
+        filename = f'self_play_process_{process_id}_game_{game_id}'
+        path = os.path.join('./self_play_data', filename)
+        with open(path, 'wb') as write:
+            pickle.dump(train_data, write)
+            
+        game_id += 1
+        
         
 def eval_play(alpha_agent,
-               apprentice_agent,
-               num_plays,
-               search_iters,
-               win_ratio):
+              apprentice_agent,
+              num_plays=NUM_EVAL_PLAYS,
+              search_iters=EVAL_PLAY_SEARCH_ITERS,
+              markov_exp=EVAL_PLAY_MARKOV_EXP,
+              win_ratio=WIN_RATIO):
 
     # put apprentice model in eval mode
     apprentice_agent.model.eval()
@@ -78,8 +92,8 @@ def eval_play(alpha_agent,
     
     # evaluation
     apprentice_wins = 0
-    actions = np.arange(GameState.NUM_ACTIONS) 
-    state_generator = GameState.state_generator(markov_exp=2)
+    actions = np.arange(MAX_NODES) 
+    state_generator = GameState.state_generator(markov_exp)
     for k in range(num_plays):      
         #store states encountered
         states = []

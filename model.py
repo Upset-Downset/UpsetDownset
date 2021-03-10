@@ -1,17 +1,10 @@
 """
 @author: Charles Petersen and Jamison Barsotti
 """
-from gameState import GameState
+from config import *
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# network architecture variables
-NUM_FILTERS = 128    # number of conv. filters in the input/residual blocks
-NUM_RES_BLOCKS = 10 # number of residual blocks
-NUM_POL_FILTERS = 2 # number of conv. filters in the policy head
-NUM_VAL_FILTERS = 1# number of conv. filters in the value head
-NUM_HIDDEN_VAL = 128 # size of the hidden layer in the value head
 
 
 class ConvBlock(nn.Module):
@@ -138,9 +131,9 @@ class ValueHead(nn.Module):
      
 class AlphaZeroNet(nn.Module):
     def __init__(self,
-                 in_channels=GameState.STATE_SHAPE[0],
-                 board_shape=GameState.STATE_SHAPE[1:],
-                 num_actions=GameState.NUM_ACTIONS,
+                 in_channels=ENCODED_STATE_SHAPE[0],
+                 board_shape=ENCODED_STATE_SHAPE[1:],
+                 num_actions=MAX_NODES,
                  num_res_blocks=NUM_RES_BLOCKS,
                  num_filters=NUM_FILTERS,
                  num_pol_filters=NUM_POL_FILTERS,

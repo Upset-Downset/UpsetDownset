@@ -2,7 +2,7 @@
 @author: Charles Petersen and Jamison Barsotti
 """
 
-from gameState import GameState
+from config import *
 import numpy as np
 import math
 
@@ -24,11 +24,9 @@ class PUCTNode(object):
             edge chosen from parent node leading to 'self'. I.e., the action 
             taken in the parent state which lead to 'state'. If 
             node is root, then action is NONE. The default is None.
-
         Returns
         -------
         None.
-
         '''
         self.state = state
         self.action = action 
@@ -40,15 +38,15 @@ class PUCTNode(object):
         # 1-D numpy array: 
         # action a --> P(self.state,a) for all actions a
         # to be updated with probs from NET upon expansion of node
-        self.edge_probs = np.zeros([GameState.NUM_ACTIONS], dtype=np.float32)
+        self.edge_probs = np.zeros(MAX_NODES, dtype=np.float32)
         # 1-D numpy array: 
         # action a --> W(self.state,a) for all actions a
         # to be updated upon backup
-        self.edge_values = np.zeros([GameState.NUM_ACTIONS], dtype=np.float32) 
+        self.edge_values = np.zeros(MAX_NODES, dtype=np.float32) 
         # 1-D numpy array: 
         # action a --> N(self.state,a) for all actions a
         # to be updated upon backup
-        self.edge_visits = np.zeros([GameState.NUM_ACTIONS], dtype=np.float32)
+        self.edge_visits = np.zeros(MAX_NODES, dtype=np.float32)
         # list to store valid actions from self.state
         # to be updated upon expansion of node
         self.valid_actions = []
@@ -61,44 +59,40 @@ class PUCTNode(object):
         ----------
         a : int (nonnegative)
             action leading to next state.
-
         Returns
         -------
         PUCTNode
             child node along edge 'a'.
-
         '''
         if a not in self.edges:
             next_state = self.state.take_action(a)
             self.edges[a] = PUCTNode(next_state, parent=self, action=a)
         return self.edges[a]
     
-    def add_dirichlet_noise(self, eps = 0.25, eta = 1.0):
+    def add_dirichlet_noise(self, epsilon=DIRICHLET_EPS, alpha=DIRICHLET_ALPHA):
         ''' Returns edge probs with Dirichlet noise added.
         
         Parameters
         ----------
-        eps : float, optional
+        epsilon : float
             constant between 0 and 1. Partially controls the level
             of exploration from a root node. The default is 0.25.
-        eta : float, optional
+        alpha : float
             constant between 0 and 1. Parameter of symmetric Dirichelt 
             distribution. Partially controls the level of exploration
             from a root node. The default is 1.
-
         Returns
         -------
         None.
-
         '''
         probs = np.copy(self.edge_probs)
         # if self is root, add dirichlet noise
-        probs = (1-eps)*probs + \
-            eps*np.random.dirichlet([eta]*GameState.NUM_ACTIONS)
+        probs = (1 - epsilon)*probs + \
+            epsilon*np.random.dirichlet([alpha]*MAX_NODES)
             
         return probs
     
-    def PUCT_action(self, c_puct = 1.0):
+    def PUCT_action(self, c_puct=C_PUCT):
         ''' Returns next action via the PUCT formula.
         
         Parameters
@@ -106,16 +100,14 @@ class PUCTNode(object):
         c_puct : float, optional
             constant which partially controls level of exploration. 
             The default is 1.0.
-
         Returns
         -------
         puct_action : int (nonnegative)
             action chosen by PUCT formula.
-
         '''
         # if self is root, add dirichlet noise
-        probs = self.add_dirichlet_noise() if self.parent is None \
-            else self.edge_probs
+        probs = self.add_dirichlet_noise() \
+            if self.parent is None else self.edge_probs
         # mean action values
         # 1-D numpy array: 
         # action a --> Q(self.state, a) for all actions a
@@ -131,7 +123,7 @@ class PUCTNode(object):
         PUCT = Q + U
         # need set PUCT(self.state, a) to negative infinity 
         # for all invalid actions a from self.state
-        invalid_actions = list(set(range(GameState.NUM_ACTIONS)) 
+        invalid_actions = list(set(range(MAX_NODES)) 
                                - set(self.valid_actions))
         PUCT[invalid_actions] = -np.Inf
 
@@ -146,7 +138,6 @@ class PUCTNode(object):
             a node which has not yet been expanded. In the case of a
             terminal node: may have been visited already, but we do not 
             expand terminal nodes.
-
         '''
         current = self
         # find a leaf, taking PUCT recommended action as we go
@@ -165,11 +156,9 @@ class PUCTNode(object):
             prior probabilities of actions queried from neural network.
         actions : list
             valid actions from 'self.state'.
-
         Returns
         -------
         None.
-
         '''
         self.valid_actions = actions
         self.edge_probs = probs
@@ -185,11 +174,9 @@ class PUCTNode(object):
             of the current player (resp. +1, -1 ). If node is terminal 
             we derive 'value' from the rules of upset-downset. Otherwise, 
             'value' is queried from the neural network.
-
         Returns
         -------
         None.
-
         '''
         current = self
         # as the value is from the current players persepective
@@ -212,9 +199,7 @@ class PUCTNode(object):
         -------
         self
             PUCTNode
-
         '''
         self.parent = None
         self.action = None
-        return self         
-    
+        return self
