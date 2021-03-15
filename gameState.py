@@ -197,7 +197,7 @@ class GameState(object):
             random_dag = uniform_random_dag(MAX_NODES, 
                                             exp=markov_exp,
                                             X_0=start_markov)
-            RGB = np.ranom.choice([True, False], p=RGB_DIST)
+            RGB = np.random.choice([True, False], p=RGB_DIST)
             random_colors = {i: np.random.choice([-1,0,1]) 
                              for i in range(MAX_NODES)} if RGB else \
                 {i: 0 for i in range(MAX_NODES)}

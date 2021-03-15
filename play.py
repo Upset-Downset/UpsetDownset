@@ -5,13 +5,14 @@ from config import *
 from gameState import GameState
 from agent import Agent
 from mcts import PUCTNode
+from writeLock import write_to_file
 import numpy as np
 import torch
 import pickle
 import os
 import ray
 
-@ray.remote(num_gpus=0.125)
+@ray.remote(num_gpus=0.1)
 def self_play(scheduler,
               process_id,
               search_iters=SELF_PLAY_SEARCH_ITERS,
@@ -20,21 +21,22 @@ def self_play(scheduler,
               temp_thrshld=TEMP_THRSHLD):
     
     print(f'Self-play process {process_id} in progress...')
-    # get agent
-    agent = Agent(alpha=True)
-    agent.model.eval()
+    # if continuing, get apprentice and alpha for training/evaluation
+    # if continuing, get apprentice and alpha for training/evaluation
+    alpha = Agent(path='./model_data/alpha.pt')
+    alpha.model.eval()
 
     actions = np.arange(MAX_NODES)
     state_generator = GameState.state_generator(markov_exp)
-    
     game_id = 1
     
+    #start self-play loop
     while True:
         # check for parameter updates after evaluation
         if ray.get(scheduler.get_signal.remote(process_id)):
             print(f'Updating self-play agent: {process_id}...')
-            agent.model.load_state_dict(torch.load(
-                './model_data/alpha_model.pt'))
+            alpha.model.load_state_dict(
+                torch.load('./model_data/alpha.pt', map_location=alpha.device))
             scheduler.reset_signal.remote(process_id)
             
         initial_state = next(state_generator)
@@ -49,7 +51,7 @@ def self_play(scheduler,
                 t = temp
             else:
                 t = 0
-            policy = agent.MCTS(root, search_iters, t)
+            policy = alpha.MCTS(root, search_iters, t)
             move = np.random.choice(actions, p=policy)
             states.append(root.state.encoded_state)
             policies.append(policy)
@@ -75,57 +77,67 @@ def self_play(scheduler,
             
         game_id += 1
         
-        
-def eval_play(alpha_agent,
-              apprentice_agent,
+@ray.remote(num_gpus=0.1)        
+def eval_play(scheduler,
               num_plays=NUM_EVAL_PLAYS,
               search_iters=EVAL_PLAY_SEARCH_ITERS,
               markov_exp=EVAL_PLAY_MARKOV_EXP,
               win_ratio=WIN_RATIO):
-
-    # put apprentice model in eval mode
-    apprentice_agent.model.eval()
+    
+    # get alpha/apprentice models, put in eval mode
+    alpha = Agent(path='./model_data/alpha.pt')
+    apprentice = Agent(path='./model_data/apprentice.pt')
+    alpha.model.eval()
+    apprentice.model.eval()
     
     # track the models
-    alpha = 0
-    apprentice = 1
-    
-    # evaluation
-    apprentice_wins = 0
-    actions = np.arange(MAX_NODES) 
+    alpha_token = 0
+    apprentice_token = 1
+    actions = np.arange(MAX_NODES)
     state_generator = GameState.state_generator(markov_exp)
-    for k in range(num_plays):      
-        #store states encountered
-        states = []
     
-        # uniformly randomly choose which model plays first
-        agent_to_start = np.random.choice([alpha, apprentice])     
+    while True:
+        # evaluation
+        apprentice_wins = 0
+        for k in range(num_plays):      
+            #store states encountered
+            states = []
+    
+            # uniformly randomly choose which model plays first
+            next_move = np.random.choice([alpha_token, apprentice_token])     
         
-        # play a randomly generated game of upset-downset
-        game_state = next(state_generator)
-        states.append(game_state.encoded_state)
-        agent = agent_to_start
-        move_count = 0
-        winner = None
-        
-        while not game_state.is_terminal_state():
-            root = PUCTNode(game_state)
-            policy = alpha_agent.MCTS(root, search_iters, 0) if agent == alpha \
-                else apprentice_agent.MCTS(root, search_iters, 0)
-            move = np.random.choice(actions, p=policy)
-            game_state = root.edges[move].state
+            # play a randomly generated game of upset-downset
+            game_state = next(state_generator)
             states.append(game_state.encoded_state)
-            agent = 1 - agent
-            move_count += 1
-            
-        # decide winner
-        winner = 1 - agent_to_start if move_count %2 == 0 else agent_to_start
-        if winner == apprentice:
-            apprentice_wins += 1 
-    
-    print(f'The apprentice won {apprentice_wins} evaluation games.')
-    
-    # put apprentice model back in training mode   
-    apprentice_agent.model.train()
+            move_count = 0
 
-    return (apprentice_wins/num_plays) > win_ratio
+            while not game_state.is_terminal_state():
+                root = PUCTNode(game_state)
+                policy = alpha.MCTS(root, search_iters, 0) if next_move == alpha_token \
+                    else apprentice.MCTS(root, search_iters, 0)
+                move = np.random.choice(actions, p=policy)
+                game_state = root.edges[move].state
+                states.append(game_state.encoded_state)
+                next_move = 1 - next_move
+                move_count += 1
+            
+            # decide winner
+            winner = 1 - next_move
+            if winner == apprentice_token:
+                apprentice_wins += 1
+    
+        print(f'The apprentice won {apprentice_wins} evaluation games.')
+        update = (apprentice_wins/num_plays) > win_ratio
+        if update:
+            print('The alpha is being updated...')
+            ray.get(
+                save_with_lock.remote(
+                    apprentice, './model_data/alpha.pt'
+                    )
+                )
+            alpha.model.load_state_dict(
+                torch.load('./model_data/alpha.pt', map_location=alpha.device))
+            scheduler.send_signal.remote()
+        
+        apprentice.model.load_state_dict(
+            torch.load('./model_data/apprentice.pt', map_location=apprentice.device))

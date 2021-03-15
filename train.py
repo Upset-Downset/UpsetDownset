@@ -2,10 +2,14 @@
 @author: Charles Petersen and Jamison Barsotti
 """
 from config import *
+from agent import Agent
+from writeLock import write_to_file
 import numpy as np
 import torch
+import torch.optim as optim
 import torch.nn.functional as F
 import ray
+import os
 
 def symmetries(train_data, num_symmetries):
     '''Returns 'num_samples' symmetries of each example in 'train_data'.
@@ -46,49 +50,31 @@ def symmetries(train_data, num_symmetries):
             
     return sym_train_data
 
-def train(agent,
-          optimizer,
-          scheduler, 
-          num_symmetries=NUM_SYMMETRIES,
-          num_epochs=NUM_EPOCHS):
-    ''' Takes 'num_symmetries' of each training example from self_play 
-    iteration 'train_iter' and perfoms a single training pass in batch sizes 
-    of 'batch_size'.
+@ray.remote(num_gpus=0.1)
+def train(scheduler, 
+          num_symmetries=NUM_SYMMETRIES):
     
-    Parameters
-    ----------
-    train_iter : TYPE
-        DESCRIPTION.
-    batch_size : int (nonegatie), optional
-        bathc sizes to be taken. The default is 256.
-    num_symmetries : int (vepositi), optional
-        The number of symmetries of each training example to take
-        (sampled w/ repitition). The default is 10.
-    learning_rate : float, optional
-        the learning rate fro SGD optimization, between 0 and 1. 
-        The default is 0.1.
-    momentum : float, optional
-        the momentum for SGD optimization, between 0 and 1. 
-        The default is 0.9.
+    #get apprentice
+    apprentice = Agent(path='./model_data/apprentice.pt')
 
-    Returns
-    -------
-    None.
-
-    '''
-    train_idx = 1
+    # initialize SGD optimizer for training, if continuing, load parameters
+    optimizer = optim.SGD(apprentice.model.parameters(),
+                              lr=LEARN_RATE,
+                              momentum=MOMENTUM)
+    
+    epoch = 0
     total_loss = 0
-    for _ in range(num_epochs):
+    while True:
         batch = ray.get(scheduler.get_training_batch.remote())
         batch_sym = symmetries(batch, num_symmetries)
         batch_states, batch_probs, batch_values = zip(*batch_sym)
             
         # query the agent
         optimizer.zero_grad()
-        states = torch.FloatTensor(batch_states).to(agent.device)
-        probs = torch.FloatTensor(batch_probs).to(agent.device)
-        values = torch.FloatTensor(batch_values).to(agent.device)
-        out_logits, out_values = agent.predict(states, training=True)
+        states = torch.FloatTensor(batch_states).to(apprentice.device)
+        probs = torch.FloatTensor(batch_probs).to(apprentice.device)
+        values = torch.FloatTensor(batch_values).to(apprentice.device)
+        out_logits, out_values = apprentice.predict(states, training=True)
             
         # calculate loss
         loss_value = F.mse_loss(out_values.squeeze(-1), values)
@@ -101,14 +87,24 @@ def train(agent,
         loss.backward()
         optimizer.step()
         
-        if train_idx %500 == 0:
-            print(f'Avg. loss over {train_idx} epochs: {total_loss/train_idx}')
-            
+        epoch += 1
+        
+        if epoch %500 == 0:
+            print(f'Avg. loss over {epoch} epochs: {total_loss/epoch}')
+            ray.get(
+                save_with_lock.remote(
+                    apprentice, './model_data/apprentice.pt'
+                    )
+                )
+         
         del states; del probs; del values
         del out_logits; del out_values; 
         del loss_policy; del loss_value
-        torch.cuda.empty_cache
+        torch.cuda.empty_cache       
         
-        train_idx += 1
+            
+            
     
         
+
+            

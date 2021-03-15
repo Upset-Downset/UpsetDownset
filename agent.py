@@ -1,75 +1,36 @@
 """
 @author: Charles Petersen and jamison Barsotti
 """
+from config import *
 from model import AlphaZeroNet
 from gameState import GameState
 from mcts import PUCTNode
 import numpy as np
 import torch
 import os
-from config import *
-
 class Agent(object):
     def __init__(self, path=None, device=DEVICE):
         self._model = None
         self.path = path
-        
-        if device:
-            self.device = device
-        else:    
-            self.device = torch.device(
-                'cuda:0' if torch.cuda.is_available() else 'cpu')
-        
-        
+        self.device = device
+               
     @property
     def model(self):
         if self._model is None:
+            # if no path variable is given, initialize parameters
+            if self.path is None:
+                Agent.initialize()
+                self.path = './model_data/initial.pt'
             # initialize model
             self._model = AlphaZeroNet()
-            # if a path variable is given, use that to load agent
-            if self.path:
-                self._model.load_state_dict(
-                    torch.load(self.path, 
-                               map_location=self.device))
+            #load params on device
+            self._model.load_state_dict(
+                torch.load(self.path, map_location=self.device))
             #put model on device
             self._model.to(self.device)
+            
         return self._model
-    
-    def training_initialization(self):
-        self.model
-        if not os.path.isdir('./model_data'):
-            os.mkdir('./model_data')  
-            torch.save(self._model.state_dict(),
-                       './model_data/initial_model.pt')
-            torch.save(self._model.state_dict(),
-                       './model_data/apprentice_model.pt')
-            torch.save(self._model.state_dict(),
-                       './model_data/alpha_model.pt')
-        else:
-            override = input('Agent directory already exists? Load [alpha], [apprentice], or\
-                            [initial]? ')
-            # alpha agent
-            if override == 'alpha':
-                self._model.load_state_dict(
-                    torch.load('./model_data/alpha_model.pt', 
-                               map_location=self.device))
-                self.path = './model_data/alpha_model.pt'
-            #apprentice agent    
-            elif override == 'apprentice':
-                self._model.load_state_dict(
-                    torch.load(
-                        './model_data/apprentice_model.pt', 
-                        map_location=self.device))
-                self.path = './model_data/apprentice_model.pt'
-            # random agent
-            elif override == 'initial':
-                self._model.load_state_dict(
-                    torch.load(
-                        './model_data/initial_model.pt', 
-                    map_location=self.device))
-                self.path = './model_data/initial_model.pt'
-        return self._model
-    
+        
     def predict_next_move(self, game, player, search_iters):
         player_dict = {'up': UP, 'down': DOWN}
         game_state = GameState(game, player_dict[player.casefold()])
@@ -113,7 +74,7 @@ class Agent(object):
                 
         # get mcts policy
         if temp == 0:
-            policy = np.zeros(GameState.NUM_ACTIONS, dtype=np.float32)
+            policy = np.zeros(MAX_NODES, dtype=np.float32)
             max_visit = np.argmax(root.edge_visits)
             policy[max_visit] = 1
         else:
@@ -125,10 +86,10 @@ class Agent(object):
     def approximate_outcome(self, game, search_iters):
         self.model.eval()
         # game state from each players persepective
-        up_start = GameState(game, GameState.UP)
-        down_start = GameState(game, GameState.DOWN)
+        up_start = GameState(game, UP)
+        down_start = GameState(game, DOWN)
         
-        actions = np.arange(GameState.NUM_ACTIONS)
+        actions = np.arange(MAX_NODES)
         outcomes = []
         
         #self play game with each player moving first
@@ -162,3 +123,20 @@ class Agent(object):
             
         self.model.train()
         return approx_out
+    
+    @staticmethod
+    def initialize(path=None):
+        '''
+        In the future this can take a path to initialize the model...
+        '''
+        initial_model = AlphaZeroNet()
+        if not os.path.isdir('./model_data'):
+                   os.mkdir('./model_data')  
+        torch.save(initial_model.state_dict(),
+                       './model_data/initial.pt')
+        torch.save(initial_model.state_dict(),
+                       './model_data/apprentice.pt')
+        torch.save(initial_model.state_dict(),
+                       './model_data/alpha.pt')
+        
+        del initial_model
