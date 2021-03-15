@@ -5,7 +5,7 @@ from config import *
 from gameState import GameState
 from agent import Agent
 from mcts import PUCTNode
-from writeLock import write_to_file
+from writeLock import save_with_lock
 import numpy as np
 import torch
 import pickle
