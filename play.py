@@ -5,7 +5,6 @@ from config import *
 from gameState import GameState
 from agent import Agent
 from mcts import PUCTNode
-from writeLock import save_with_lock
 import numpy as np
 import torch
 import pickle
@@ -130,11 +129,8 @@ def eval_play(scheduler,
         update = (apprentice_wins/num_plays) > win_ratio
         if update:
             print('The alpha is being updated...')
-            ray.get(
-                save_with_lock.remote(
-                    apprentice, './model_data/alpha.pt'
-                    )
-                )
+            torch.save(
+                apprentice.model.state_dict(), './model_data/alpha.pt')
             alpha.model.load_state_dict(
                 torch.load('./model_data/alpha.pt', map_location=alpha.device))
             scheduler.send_signal.remote()

@@ -18,7 +18,7 @@ class TrainingScheduler(object):
                  replay_size=MAX_REPLAY_BUFFER):
         self.update_signal = np.zeros(num_trainers, dtype=np.int8)
         self.replay_buffer = deque(maxlen=replay_size)
-        self.train_iter = 0
+        self.evaluation_signal = 0
         
     def get_signal(self, process_id):
         return self.update_signal[process_id]

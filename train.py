@@ -3,7 +3,6 @@
 """
 from config import *
 from agent import Agent
-from writeLock import save_with_lock
 import numpy as np
 import torch
 import torch.optim as optim
@@ -91,11 +90,8 @@ def train(scheduler,
         
         if epoch %500 == 0:
             print(f'Avg. loss over {epoch} epochs: {total_loss/epoch}')
-            ray.get(
-                save_with_lock.remote(
-                    apprentice, './model_data/apprentice.pt'
-                    )
-                )
+            torch.save(
+                apprentice.model.state_dict(), './model_data/apprentice.pt')
          
         del states; del probs; del values
         del out_logits; del out_values; 
