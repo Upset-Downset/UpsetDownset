@@ -77,9 +77,7 @@ def markov_step(Xt, class_card, num_nodes):
         random DAG.
     '''
     # Randomly sample two integers from 0,...,n-1. 
-    i, j = np.random.choice(num_nodes, 2)
-    if i == j:
-        return Xt, class_card
+    i, j = np.random.choice(num_nodes, 2, replace=False)
 
     # check to see if the edge (i,j) is in X_t, if it is, probabilistically 
     # choose to move to the graph 'Z' created by removing (i,j) from Xt.
@@ -140,9 +138,9 @@ def markov_chain(G, num_steps, class_card=None):
     else:
         G_class_card = class_card
     for _ in range(num_steps):
-        H, H_class_card = markov_step(G, G_class_card, num_nodes)
+        G, G_class_card = markov_step(G, G_class_card, num_nodes)
         
-    return H, H_class_card
+    return G, G_class_card
 
 def uniform_random_dag(num_nodes, 
                        exp=2, 
