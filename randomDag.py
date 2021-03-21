@@ -20,9 +20,9 @@ paper Uniform Random Posets. Citation information:
 import numpy as np
 import digraph
 
-def class_card(G):
+def class_cardinality(G):
     ''' Returns the class cardinality of the DAG 'G' under the equivalence 
-    relation: X~Y if and only if  the trasnitive reductions of X and Y are 
+    relation: X~Y if and only if the trasnitive reductions of X and Y are 
     the same.
     
     Parameters
@@ -30,10 +30,11 @@ def class_card(G):
     G : dict
         adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
+        
     Returns
     -------
     int
-        returns the class cardinality of 'G'.
+        the class cardinality of 'G'.
     '''
     # get a list of the components for G
     components = digraph.connected_components(G)
@@ -41,123 +42,124 @@ def class_card(G):
     # for each component, compute the difference between the nuber of
     # edges in th transitive closure (li) and transitive reduction (ri)
     # and keep a running sum.
-    comp_sum = 0
-    for i in components:
-        sub_G = digraph.subgraph(G, i)
-        li = digraph.number_of_edges(digraph.transitive_closure(sub_G))
-        ri = digraph.number_of_edges(digraph.transitive_reduction(sub_G))
-        comp_sum += li - ri   
+    component_sum = 0
+    for nodes in components:
+        subG = digraph.subgraph(G, nodes)
+        l_component = digraph.number_of_edges(
+            digraph.transitive_closure(subG)
+            )
+        r_component = digraph.number_of_edges(
+            digraph.transitive_reduction(subG)
+            )
+        component_sum += (l_component - r_component)
         
-    return 2**comp_sum
+    return pow(2, component_sum)
 
-def markov_step(X_t, cc, n):
+def markov_step(Xt, class_card, num_nodes):
     ''' Returns the DAG generated after one step of the Matrkov process 
-    starting from the DAG 'X_t'.
+    starting from the DAG 'Xt'.
     
     Parameters
     ----------
     X_t : dict
-        adjacency representation of the DAG 'X_t': the t-th step 
+        adjacency representation of the DAG 'Xt': the t-th step 
         in the markov chain. (Adjacency lists keyed by node.)
-    n : int (nonegative)
-        number of nodes in X_t
-    cc : int
-        the class cardinality of the DAG 'X_t'.
-        [One should note that making the class_card computation
-        is very complex, but in a markov chain, the previous iteration
-        contains this calculation for 'X_t', therefore 
-        it doesn't need to be recalculated]
+    num_nodes : int (nonegative)
+        number of nodes in Xt
+    class_card : int
+        the class cardinality of the DAG 'Xt'.
+        
     Returns
     -------
     dict
-        returns the adjacency representation of the DAG 'X_t1',
+        returns the adjacency representation of the DAG 'Xt1',
         which is the t+1-th step in the markov chain generating a
         random DAG.
     '''
     # Randomly sample two integers from 0,...,n-1. 
-    i, j = np.random.choice(n, 2)
+    i, j = np.random.choice(num_nodes, 2)
     if i == j:
-        return X_t, cc
+        return Xt, class_card
 
     # check to see if the edge (i,j) is in X_t, if it is, probabilistically 
-    # choose to move to the graph 'Z' created by removing (i,j) from X_t.
+    # choose to move to the graph 'Z' created by removing (i,j) from Xt.
     # else, probabilistically choose to move to the graph 
     # 'Y' created by adding it (as long as Y is acyclic).
-    X_t_class_card = cc
-    if j in X_t[i]:
-        X_t[i].remove(j)
-        Z_class_card = class_card(X_t)
-        prob = min(1 , X_t_class_card / Z_class_card)
+    Xt_class_card = class_card
+    if j in Xt[i]:
+        Xt[i].remove(j)
+        Z_class_card = class_cardinality(Xt)
+        prob = min(1 , Xt_class_card / Z_class_card)
         choice = np.random.choice(['z','x'], p=[prob, 1-prob])
         if choice == 'z':
-            X_t1 = X_t
-            cc = Z_class_card
+            class_card = Z_class_card
         else:
-            X_t[i].append(j)
-            X_t1 = X_t
+            Xt[i].append(j)
     else:
-        # add the edge (i,j) to X_t if adding such an edge gives an 
-        # acyclic graph. otherwise, it will return the original graph X_t.
-        X_t[i].append(j)     
-        if not digraph.is_acyclic(X_t) :
-            X_t[i].remove(j) 
-            X_t1 = X_t
+        # add the edge (i,j) to Xt if adding such an edge gives an 
+        # acyclic graph. otherwise, it will return the original graph Xt.
+        Xt[i].append(j)     
+        if not digraph.is_acyclic(Xt) :
+            Xt[i].remove(j) 
         else:  
-            Y_class_card = class_card(X_t)
-            prob = min(1 , X_t_class_card / Y_class_card)
+            Y_class_card = class_cardinality(Xt)
+            prob = min(1 , Xt_class_card / Y_class_card)
             choice = np.random.choice(['y','x'], p=[prob, 1-prob])
             if choice == 'y':  
-                X_t1 = X_t
-                cc = Y_class_card
+                class_card = Y_class_card
             else: 
-                X_t[i].remove(j) 
-                X_t1 = X_t
+                Xt[i].remove(j) 
                 
-    return X_t1, cc
+    Xt1 = Xt
+                
+    return Xt1, class_card
 
-def markov_chain(G, steps, cc=None):
-    ''' Returns the DAG resulting from 'steps' iterations of the markov
+def markov_chain(G, num_steps, class_card=None):
+    ''' Returns the DAG resulting from 'num_steps' iterations of the markov
     process starting from the DAG 'G'.
     
     Parameters
     ----------
-     : dict
+    G : dict
         adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
-    steps : int (nonnegative)
+    num_steps : int (nonnegative)
         number of steps in the markov chain. 
-    cc: int (nonegative)
+    class_card: int (nonegative)
         the class cardinality of the DAG 'G'. If None, it will compute it
         
     Returns
     -------
     H : adjacency representation of a directed graph. (Adjacency lists keyed 
-        by node.) The final graph in the markov chain of length 'steps' starting 
-        with the DAG  'G'.
+        by node.) The final graph in the markov chain of length 'num_steps' 
+        starting with the DAG  'G'.
     '''
-    n = len(G)
-    if cc == None:
-        G_class_card = class_card(G)
+    num_nodes = len(G)
+    if class_card is None:
+        G_class_card = class_cardinality(G)
     else:
-        G_class_card = cc
-
-    for _ in range(steps):
-        H, H_class_card = markov_step(G, G_class_card, n)
+        G_class_card = class_card
+    for _ in range(num_steps):
+        H, H_class_card = markov_step(G, G_class_card, num_nodes)
         
     return H, H_class_card
 
-def uniform_random_dag(n, exp=2, extra_steps=0, X_0=None, cc=None):
+def uniform_random_dag(num_nodes, 
+                       exp=2, 
+                       extra_steps=0, 
+                       X0=None, 
+                       class_card=None):
     ''' Returns a random DAG (almost uniformly, as viewed in terms of 
-    the equivalence classes of trasnistively reduced DAGS) on 'n' nodes using 
+    the equivalence classes of trasnistively reduced DAGS) on 'num_nodes' using 
     the markov process described by Patryk Kozieł and Małgorzata Sulkowska.
     
     Parameters
     ----------
-    n : int (nonegative)
+    num_nodes : int (nonegative)
         The number of nodes you want the returned DAG to have.
     exp : int
-        The exponent on n determining the number of steps taken in the markov 
-        process. In the report by Kozieł and Sulkowska, they conjecture
+        The exponent on num_nodes determining the number of steps taken in the 
+        markov process. In the report by Kozieł and Sulkowska, they conjecture
         that it is sufficient for this to be 2 to obtain a random DAG almost 
         uniformly selected. Thus, we make the default 2.
     extra_steps : int, optional
@@ -166,7 +168,7 @@ def uniform_random_dag(n, exp=2, extra_steps=0, X_0=None, cc=None):
     X_0 : dict, optional
         adjacency representation of the DAG from which to start the markov 
         process. (Adjacency lists keyed by node.) The default is the empty 
-        DAG on 'n' nodes. 
+        DAG on 'num_nodes'. 
         
     Returns
     -------
@@ -174,15 +176,22 @@ def uniform_random_dag(n, exp=2, extra_steps=0, X_0=None, cc=None):
         adjacency representation of a directed graph. (Adjacency lists keyed 
         by node.)
     '''
-    if X_0 == None:
-        X_0 = {i:[] for i in range(n)}
-        X_0_class_card = 1
+    if X0 is None:
+        X0 = {i:[] for i in range(num_nodes)}
+        X0_class_card = 1
     else:
-        if cc == None:
-            X_0_class_card = class_card(X_0)
+        if class_card is None:
+            X0_class_card = class_cardinality(X0)
         else:
-            X_0_class_card = cc
+            X0_class_card = class_card
             
-    G, _ = markov_chain(X_0, int(n**exp + extra_steps), cc=X_0_class_card)
+    num_steps = int(
+        pow(num_nodes,exp) + extra_steps
+        )      
+    G, _ = markov_chain(
+        X0, 
+        num_steps, 
+        class_card=X0_class_card
+        )
     
     return G

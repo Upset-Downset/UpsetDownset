@@ -48,6 +48,7 @@ def complete_bipartite_dag(graphs):
         # update before processing next graph
         dag.update(graph_rels)      
         last_count += count
+        
     return dag
 
 
@@ -56,7 +57,7 @@ class CompleteBipartiteGame(UpDown):
     directed (horizontally-oriented) complete bipartite graphs.
     '''
     def __init__(self, graphs):
-        ''' Initializes an 'all green' game of upset-downset on a poset whose 
+        ''' Initializes an all green game of upset-downset on a poset whose 
         Hasse diagram is a disjoint union of (horizontally-oriented) complete 
         bipartite graphs.
         
@@ -66,9 +67,6 @@ class CompleteBipartiteGame(UpDown):
             ordered pairs (tuples or lists) of non-negative integers (m,n) each 
             representinting a distinct (horizontally-oriented) complete 
             bipartite having m nodes on top and n nodes on bottom.
-       RGB : bool, optional
-            determines the coloring. If 'True' the nodes will be colored 
-            randomly. Otherwise, all nodes will be colored green.
             
         Returns
         -------
@@ -76,8 +74,7 @@ class CompleteBipartiteGame(UpDown):
 
         '''
         dag = complete_bipartite_dag(graphs)
-        colors= {x:0 for x in dag}
-        UpDown.__init__(self, dag, coloring = colors, reduced = True)
+        UpDown.__init__(self, dag, reduced = True)
         self.graphs = graphs
         
         
@@ -130,6 +127,7 @@ class CompleteBipartiteGame(UpDown):
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
         option.coloring = {i:0 for i in option_nodes}
+        option.layout = {i: self.layout[i] for i in option_nodes}
         
         return  option
     
@@ -182,6 +180,7 @@ class CompleteBipartiteGame(UpDown):
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
         option.coloring = {i:0 for i in option_nodes}
+        option.layout = {i: self.layout[i] for i in option_nodes}
         
         return  option
     

@@ -8,30 +8,25 @@ import numpy as np
 
 class RandomGame(UpDown):
     ''' Subclass of UpDown for (almost) unifromly randomly generated games of 
-    Upset-Downset.
+    upset-downset. (See the randomDag module.)
     '''
     def __init__(self, 
-                 n, 
+                 num_nodes, 
                  markov_exp=2, 
-                 extra_steps=0, 
-                 start=None, 
+                 extra_steps=0,  
                  RGB = False):
         ''' Initializes a game of Upset-Downset on an (almost) uniformly 
-        randomly generated DAG with 'n' nodes. (See the randomDag module.)
+        randomly generated DAG with 'num_nodes' nodes. 
         
         Parameters
         ----------
-        n : int (nonnegative)
+        num_nodes : int (nonnegative)
             number of nodes in the game
-        exponent: float, optional
+        markov_exp: float, optional
             The exponent on 'n' determining the number of steps taken in 
             the markov chain. The default is 1.
         extra_steps: int (nonnegative), optional
             add some extra steps to the markov chain
-        start : dict, optional
-            adjacency representation of the DAG from which to start the markov 
-            process. (Adjacency lists keyed by node.) The default is the empty 
-            DAG on 'n' nodes. 
         RGB : bool, optional
             determines the coloring. If 'True' the nodes will be colored 
             randomly. Otherwise, all nodes will be colored green.
@@ -41,12 +36,11 @@ class RandomGame(UpDown):
         None
 
         '''
-        if start is not None:
-            assert len(start) == n, 'starting DAG is too big.'
-        dag = uniform_random_dag(n, 
-                                 exp=markov_exp, 
-                                 extra_steps=extra_steps, 
-                                 X_0=start)
-        colors = {i: np.random.choice([-1,0,1]) for i in range(n)} \
+        dag = uniform_random_dag(
+            num_nodes, 
+            exp=markov_exp, 
+            extra_steps=extra_steps
+            )
+        colors = {i: np.random.choice([-1,0,1]) for i in range(num_nodes)} \
             if RGB else None
         UpDown.__init__(self, dag, coloring = colors)

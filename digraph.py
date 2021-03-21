@@ -5,13 +5,13 @@ import copy
 import collections 
 
 def relabel(G, relabel_map):
-    ''' Relabel nodes of the directed graph 'G' according to 'relabel_map'. 
+    ''' Returns a copy of the directed graph 'G' with nodes relabelled
+    according to 'relabel_map'. 
     
-    Parameters
-    
+    Parameters  
     ----------
     G : dict
-        adjacency representation of a directed graph. (Adjacency lists keyed 
+        adjacency representation of a directed graph. (Adjacency list keyed 
         by node.)
     
     relabel_map : dict
@@ -32,14 +32,15 @@ def relabel(G, relabel_map):
  
 def subgraph(G, nodes):
     ''' Returns the subgraph of the directed graph 'G' on 'nodes'.
+    
     Parameters
     ----------
     G : dict
-        adjacency representation of a directed graph. (Adjacencylists keyed 
+        adjacency representation of a directed graph. (Adjacency list keyed 
         by node.)
         
     nodes : list
-        subset of nodes of 'G'.
+        subset of nodes of 'G' on which the subgraph is to be defined.
         
     Returns
     -------
@@ -90,12 +91,13 @@ def edge_list(G):
     Returns
     -------
     list
-        lists of ordered-pairs denoting the edges of G.
+        lists of ordered-pairs denoting the edges of G. A pair (u,v)
+        correpsonds to the edge u --> v in 'G'.
 
     '''
     edges = []
-    for v in G:
-        for u in G[v]:
+    for u in G:
+        for v in G[u]:
             edges.append((u,v))   
     return edges
 
@@ -148,8 +150,7 @@ def sources(G):
         all sources of 'G'. (A node is a source if it has no incoming edges.)
         
     '''
-    rev = reverse(G)
-    return list(filter(lambda x : rev[x] == [], rev.keys()))
+    return sinks(reverse(G))
 
 def descendants(G, source):
     ''' Returns all nodes reachable from 'source' node in the directed 
@@ -188,6 +189,7 @@ def descendants(G, source):
     for v in G[source]:
         if visited[v] == -1:
             dfs_visit(G,v)
+            
     return reachable_from_source
    
 def ancestors(G, source):
@@ -209,9 +211,7 @@ def ancestors(G, source):
         all nodes having a path to 'source' in 'G'.
 
     '''
-    rev = reverse(G)
-    has_path_to_source = descendants(rev, source)
-    return has_path_to_source
+    return descendants(reverse(G), source)
 
 def is_acyclic(G):
     ''' Returns wether the directed graph G is acyclic.
@@ -251,11 +251,12 @@ def is_acyclic(G):
         if visited[v] == -1:
             if not dfs_visit(G,v):
                 return False
+            
     return True
 
 def topological_sort(G, reverse = False):
-    ''' Returns a topological ordering of the nodes in the directed acyclic**
-    graph 'G'.
+    ''' Returns a topological ordering of the nodes in the directed acyclic
+    graph 'G'. (It is assumed that 'G' is acyclic, we do not check.)
 
     Parameters
     ----------
@@ -271,8 +272,6 @@ def topological_sort(G, reverse = False):
     -------
     list
         a topological ordering of the nodes in 'G'. 
-        
-    ** It is assumed that 'G' is acyclic, we do not check.
     
     Reference:
         Introduction to Algotithms: Chapter 22, Thomas H. Cormen, 
@@ -297,6 +296,7 @@ def topological_sort(G, reverse = False):
     # Since we were appending finished nodes to the list we need to reverse.
     if not reverse:
         order.reverse()
+        
     return order
 
 def transitive_closure(G):
@@ -324,7 +324,8 @@ def transitive_closure(G):
     return transitive_closure
 
 def transitive_reduction(G):
-    ''' Returns the transitive reduction of the directed acyclic** graph 'G'.
+    ''' Returns the transitive reduction of the directed acyclic** graph 'G'. 
+    (It is assumed that 'G' is acyclic, we do not check.)
     
     Parameters.
     ----------
@@ -338,8 +339,6 @@ def transitive_reduction(G):
         adjacency representation of the transitive reduction of 'G'. (Adjacency 
         lists keyed by node.
         
-    ** It is assumed that 'G' is acyclic, we do not check.
-    
     References:
         - https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/dag.html
         - https://en.wikipedia.org/wiki/Transitive_reduction
@@ -362,11 +361,13 @@ def transitive_reduction(G):
                     des[u] = set(descendants(G,u))
                 adj_v -= des[u]
         transitive_reduction[v] = list(adj_v)
+        
     return transitive_reduction
 
-def longest_path_lengths(G, direction = 'outgoing'):
-    ''' Returns the length of the longest path 'outgoing' (optionally, 
-    'incoming')  each node in the directed acyclic** graph 'G' 
+def longest_path_lengths(G, direction='outgoing'):
+    ''' Returns the length of the longest path outgoing (optionally, 
+    incoming)  each node in the directed acyclic graph 'G'. (It is assumed 
+    that 'G' is acyclic, we do not check.)
     
     Parameters
     ----------
@@ -382,10 +383,8 @@ def longest_path_lengths(G, direction = 'outgoing'):
     Returns
     ------- 
     dict
-        lengths of the longest outgoing (or incoming) paths in 'G' 'keyed by 
-        node .
-        
-    ** It is assumed that 'G' is acyclic, we do not check.
+        lengths of the longest outgoing (optionally incoming) paths in 'G' 
+        keyed by node.
     
     Reference: 
         - https://en.wikipedia.org/wiki/Longest_path_problem#Acyclic_graphs_and_critical_paths
@@ -396,7 +395,7 @@ def longest_path_lengths(G, direction = 'outgoing'):
     # if we want incoming paths, then reverse the graph.
     if direction == 'incoming':
         G = reverse(G)
-    reverse_linear_order = topological_sort(G, reverse = True)
+    reverse_linear_order = topological_sort(G, reverse = True)  
     # loop over nodes in reverse topological order, updating maximum length of 
     # each path as we go.
     for v in reverse_linear_order:
@@ -405,6 +404,7 @@ def longest_path_lengths(G, direction = 'outgoing'):
             if max_path_lengths[u] + 1 > MAX:
                MAX = max_path_lengths[u] + 1
         max_path_lengths[v] = MAX  
+        
     return max_path_lengths
 
 def connected_components(G):
@@ -454,13 +454,14 @@ def connected_components(G):
             v = nodes.pop()
         else: 
             break
+        
     return components
 
 
 def hasse_layout(G):
     ''' Returns the xy-coordinates of each node in a Hasse diagram plot layout
-    of the directed acyclic graph 'G'. (In particular, all arrows (edges) 
-    should be pointing up.)
+    of the directed acyclic graph 'G'. In particular, all arrows (edges) 
+    should be pointing up. (It is assumed that 'G' is acyclic, we do not check.)
 
     Parameters
     ----------
@@ -471,15 +472,13 @@ def hasse_layout(G):
     Returns
     -------
     dict
-        xy-coordinates keyed by nodes of 'G':
+        xy-coordinates keyed by node:
             - the y-coordinate of each node is assigned by the level of 
             the node in 'G'. The level of a node N  in 'G' is the 
             the length of the longest path in 'G' which ends at N.
             - the x-coordinate of each node is assigned in such a way that
             for each component of 'G' each level for that component 
-            is evenly spaced horizontally with previous level***
-        
-    ** It is assumed that 'G' is acyclic, we do not check.
+            is evenly spaced horizontally with previous level.
     
     NOTE: At times this layout can return an unwanted overlap between edges 
     and nodes. However, it works pretty well most of the time.
@@ -528,5 +527,6 @@ def hasse_layout(G):
             prev_comp_max_x = max(prev_comp_max_x, level_left_x + level_size-1)
             prev_level_left_x = level_left_x
             prev_level_size = level_size  
+            
     return hasse_pos
         

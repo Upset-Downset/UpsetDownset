@@ -19,10 +19,11 @@ def color(c):
 
     '''
     colordict = {-1 : '#F05252', 0 : '#09D365', 1 : '#5284F0'}
+    
     return colordict[c]                           
 
 class UpDownPlot(object):
-    '''Abstract class for constructing and mutating a visualization of an 
+    '''Abstract class for constructing and mutating the plot of an 
     upset-downset game.
     '''
 
@@ -33,7 +34,7 @@ class UpDownPlot(object):
         game, 'game'. The node positions in the plot are determined according
         to the 'hasse_layout' function in the digraph module.
         
-        ** Besides simply plotting a game of upset-downset, when interactively 
+        (Besides simply plotting a game of upset-downset, when interactively 
         playing a game this class allows for the easy mutation of the plot so 
         as to keep edge and vertex positions consistent throughout play. (See 
         the leave_subgraph() method.)
@@ -147,7 +148,7 @@ class UpDownPlot(object):
         self.figure_vertex_labels = sub_fig_vertex_labels
     
     def show(self):
-        ''' Plots the game.
+        ''' Shows the game plot.
         Returns
         -------
         None.

@@ -3,9 +3,8 @@
 """
 
 import digraph 
-import upDownPlot as udp
-import random  
-import copy                                             
+from upDownPlot import UpDownPlot
+import random                                              
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
 import time
@@ -14,7 +13,7 @@ class UpDown(object):
     ''' Abstract class for construction of an upset-downset game from a 
     directed acyclic graph with blue-green-red node coloring. 
     '''
-    def __init__(self, dag, coloring = None, reduced = False):
+    def __init__(self, dag, coloring=None, reduced=False):
         '''
         Parameters
         ----------
@@ -26,7 +25,7 @@ class UpDown(object):
         coloring : dict, optional
             a coloring of the nodes of 'dag': color keyed by node.
             (The colors are 1 (resp. 0,-1) for blue (resp. green, red).
-            If no coloring is given all nodes will be colored greeen. 
+            If no coloring is given all nodes will be colored green. 
             The default is None.
         reduced : bool, optional
             if True, it is assumed that 'dag' is acyclic and 
@@ -56,7 +55,7 @@ class UpDown(object):
         return self._layout
     
     @layout.setter
-    def layouy(self, x):
+    def layout(self, x):
         self._layout = x
         
 ##############################################################################
@@ -65,28 +64,29 @@ class UpDown(object):
     
     def up_nodes(self):
         ''' Returns all blue/green nodes.
+        
         Returns
         -------
-        lisy
-            all blue/green nodes
+        list
+            all blue/green nodes.
 
         '''
-        return list(filter(lambda x :
-                           self.coloring[x] in {0,1}, self.dag))
+        return list(filter(lambda x : self.coloring[x] in {0,1}, self.dag))
     
     def down_nodes(self):
         '''Returns all red/green nodes
+        
         Returns
         -------
         list
             all red/green nodes
 
         '''
-        return list(filter(lambda x :
-                           self.coloring[x] in {-1,0}, self.dag)) 
+        return list(filter(lambda x : self.coloring[x] in {-1,0}, self.dag)) 
                
     def color_sum(self):
         '''Returns the sum over all node colors.
+        
         Returns
         -------
         int
@@ -101,6 +101,7 @@ class UpDown(object):
 
     def upset(self, x):
         '''Returns the upset of node 'x'.
+        
         Parameters
         ----------
         x : int (nonnegative)
@@ -109,11 +110,12 @@ class UpDown(object):
         Returns
         -------
         upset : list
-            all nodes reahcable from 'x', including 'x' itself. 
+            all nodes reachable from 'x', including 'x' itself. 
 
         '''
         upset = digraph.descendants(self.dag, x)
         upset.append(x)
+        
         return upset
     
     def downset(self, x):
@@ -132,10 +134,11 @@ class UpDown(object):
         '''
         downset = digraph.ancestors(self.dag, x)
         downset.append(x)
+        
         return downset
 
     def up_play(self, x):
-        '''returns the upset-downset game left after Up plays node 'x'.
+        '''Returns the upset-downset game left after Up plays node 'x'.
 
         Parameters
         ----------
@@ -145,7 +148,7 @@ class UpDown(object):
         Returns
         -------
         UpDown
-            the game state after Up plays node 'x'.
+            the upset-downset game left after Up plays node 'x'.
 
         '''
         assert x in self.up_nodes()
@@ -153,10 +156,13 @@ class UpDown(object):
         option_coloring = {node: color for node, color in 
                            self.coloring.items() if node in option_nodes}
         option_dag = digraph.subgraph(self.dag, option_nodes) 
-        return UpDown(option_dag, option_coloring, reduced = True)
+        option = UpDown(option_dag, option_coloring, reduced=True)
+        option.layout = {x: self.layout[x] for x in option_nodes}
+        
+        return option
     
     def down_play(self, x):
-        '''returns the upset-downset game left after Down plays node 'x'.
+        '''Returns the upset-downset game left after Down plays node 'x'.
 
         Parameters
         ----------
@@ -166,7 +172,7 @@ class UpDown(object):
         Returns
         -------
         UpDown
-            the game state after Down plays node 'x'.
+            the upset-downset game left after Down plays node 'x'
 
         '''
         assert x in self.down_nodes()
@@ -174,7 +180,10 @@ class UpDown(object):
         option_coloring = {node: color for node, color in 
                            self.coloring.items() if node in option_nodes}
         option_dag = digraph.subgraph(self.dag, option_nodes) 
-        return UpDown(option_dag, option_coloring, reduced = True)
+        option = UpDown(option_dag, option_coloring, reduced=True)
+        option.layout = {x: self.layout[x] for x in option_nodes}
+        
+        return UpDown(option_dag, option_coloring, reduced=True)
            
               
 ##############################################################################    
@@ -195,27 +204,27 @@ class UpDown(object):
         None.
 
         '''
-        udp.UpDownPlot(self, marker=marker)      
+        UpDownPlot(self, marker=marker)      
         plt.show()
     
 ##############################################################################    
 ########################### GAMEPLAY #########################################
 ##############################################################################
     
-    def play(self, marker='o', agent_1 = None, agent_2 = None):
-        ''' Interactively play game.
+    def play(self, agent1= None, agent2=None,  marker='o',):
+        ''' Interactively play the game.
         
         Parameters
         ----------
         marker : matplotlib marker, optional
             the marker is the node style for the game plot. The default is 'o'.
             for all options: https://matplotlib.org/3.3.3/api/markers_api.html
-        agent_1 : func, optional
+        agent1 : func, optional
+            can play against an agent or have two agents play against 
+            one another. The default is None. (agent1 will always play first.)
+        agent2 : func, optional
             can play ageainst an agent or have two agents play against 
-            one another. The default is None.
-        agent_2 : func, optional
-            can play ageainst an agent or have two agents play against 
-            one another. The default is None.
+            one another. The default is None. (agent2 will always play second.)
         Returns
         -------
         None.
@@ -224,7 +233,7 @@ class UpDown(object):
         
         # who plays first
         players = ['up', 'down']
-        if agent_1 == None or agent_2 == None:
+        if agent1 == None or agent2 == None:
             first = input("Which player will start, 'Up' or 'Down'? ")       
             while first.casefold() not in players:
                 first = input("Please choose 'Up' or 'Down'! ")
@@ -246,7 +255,7 @@ class UpDown(object):
         # objects in our figure. These are used to remove
         # these objects from the figure as the game progresses
         clear_output(wait=True)
-        board = udp.UpDownPlot(initl_pos, marker=marker)                     
+        board = UpDownPlot(initl_pos, marker=marker)                     
         plt.pause(0.01)
     
         # play. The general theme is while the game still has nodes:
@@ -262,10 +271,18 @@ class UpDown(object):
         while cur_pos.dag:
             
             # players can only choose nodes of their allowed colors.
-            first_options = list(filter(lambda x : cur_pos.coloring[x]
-                                        in first_colors, cur_pos.dag))            
-            second_options = list(filter(lambda x : cur_pos.coloring[x]
-                                         in second_colors, cur_pos.dag))     
+            first_options = list(
+                filter(
+                    lambda x : cur_pos.coloring[x]in first_colors,
+                    cur_pos.dag
+                    )
+                )            
+            second_options = list(
+                filter(
+                    lambda x : cur_pos.coloring[x] in second_colors, 
+                    cur_pos.dag
+                    )
+                )     
             options_dict = {first: first_options, second: second_options}
             
             # if either player has no valid moves the 
@@ -279,12 +296,12 @@ class UpDown(object):
                 cur_player = second
                 break
                       
-            if cur_player == first and agent_1 != None:
-                u = agent_1(cur_pos, player_to_move=cur_player)
+            if cur_player == first and agent1 != None:
+                u = agent1(cur_pos, player_to_move=cur_player)
                 print(f'Agent choose {str(u)}')
                 time.sleep(1)
-            elif cur_player == second and agent_2 != None:
-                u = agent_2(cur_pos, player_to_move=cur_player)
+            elif cur_player == second and agent2 != None:
+                u = agent2(cur_pos, player_to_move=cur_player)
                 print(f'Agent choose {str(u)}')
                 time.sleep(1)
             else:
@@ -302,9 +319,9 @@ class UpDown(object):
                 cur_pos = cur_pos.down_play(u) 
                 
             clear_output(wait=True)
-            board = udp.UpDownPlot(initl_pos, marker=marker) 
+            board = UpDownPlot(initl_pos, marker=marker) 
             board.leave_subgraph_fig(cur_pos)
-            plt.pause(0.01)
+            plt.pause(1)
             
             if cur_player == 'up':
                 cur_player = 'down'
@@ -319,16 +336,16 @@ class UpDown(object):
             cur_player = 'up'
             
         print(f'\n {cur_player.capitalize()} wins!')
-        plt.pause(0.01)
+        plt.pause(1)
         
 ##############################################################################    
 ########### UPDOWNS PARTIALLY ORDERED ABELIAN GROUP STRUCTURE ################
 ##############################################################################
     
     def outcome(self):
-        ''' Returns the outcome of the game. **Due to the possibly huge number 
+        ''' Returns the outcome of the game. (Due to the possibly huge number 
         of suboptions, for all but relitively small games, this algorithm is 
-        extremely slow.
+        extremely slow.)
         
         Returns
         -------
@@ -430,22 +447,25 @@ class UpDown(object):
             and opposite coloring.
 
         '''
-        # get layoiut of game flipped upseide down
+        # get reversed graph and inverted coloring
+        dual = digraph.reverse(self.dag)
+        reverse_coloring = {x: -self.coloring[x] for x in self.dag}
+        # get layout of the negative
         components = digraph.connected_components(self.dag)
-        levels_dict = digraph.longest_path_lengths(self.dag, 
-                                                   direction = 'incoming')
+        levels_dict = digraph.longest_path_lengths(
+            self.dag, 
+            direction = 'incoming'
+            )
         flipped_layout = {}
         for component in components:
             height = max(levels_dict[x] for x in component)
             flipped_layout.update(
-                {x: (self.layout[x][0], height-self.layout[x][1]) 
-                 for x in component})
-        # get reversed graph and inverted coloring
-        dual = digraph.reverse(self.dag)
-        reverse_coloring = {x: -self.coloring[x] for x in self.dag} 
+                {x: (self.layout[x][0], 
+                     height-self.layout[x][1]) for x in component}
+                ) 
         # instantiate game and set layout
         negative = UpDown(dual, reverse_coloring, reduced=True)
-        negative._layout = flipped_layout
+        negative.layout = flipped_layout
         
         return negative
 
@@ -486,7 +506,18 @@ class UpDown(object):
         for x in relabel_map:
             y = relabel_map[x]
             sum_coloring[y] = other.coloring[x]
-        return UpDown(sum_dag, sum_coloring, reduced = True)
+        # get the layout of the sum
+        largest_x = max(x[0] for x in self.layout.values())
+        sum_layout = {x:self.layout[x] for x in self.dag}
+        sum_layout.update(
+            {relabel_map[x]: (other.layout[x][0]+largest_x, 
+                 other.layout[x][1]) for x in other.dag}
+                 )
+        # instantiate the game and set the layout
+        sum_game = UpDown(sum_dag, sum_coloring, reduced=True)
+        sum_game.layout = sum_layout
+        
+        return sum_game
     
     def __sub__(self, other):
         ''' Returns the difference of games.
@@ -508,8 +539,8 @@ class UpDown(object):
         return self + (-other)
     
     def __eq__(self, other):
-        ''' Returns wether the games are equal. ** Depends on the outcome 
-        method.
+        ''' Returns wether the games are equal. (Depends on the outcome 
+        method.)
 
         Parameters
         ----------
@@ -526,11 +557,10 @@ class UpDown(object):
         return (self - other).outcome() == 'Previous'
     
     def __or__(self, other):
-        ''' Returns wether games are incomparable (fuzzy). ** Depends on the 
-        outcome method.
+        ''' Returns wether games are incomparable (fuzzy). (Depends on the 
+        outcome method.)
 
-        Parameters
-        
+        Parameters     
         ----------
         other : UpDown
             a game of upset-downset.
@@ -544,8 +574,8 @@ class UpDown(object):
         return (self - other).outcome == 'Next'
 
     def __gt__(self, other):
-        ''' Returns wether games are comparable in specified order. ** Depends 
-        on the outcome method.
+        ''' Returns wether games are comparable in specified order. (Depends 
+        on the outcome method.)
 
         Parameters
         ----------
@@ -597,7 +627,7 @@ class UpDown(object):
 
     def __truediv__(self, other):          
         ''' Returns the ordinal sum of games. (This is not a commutative 
-        operation). **Relabels all elements of 'self' with consecutive 
+        operation). Relabels all elements of 'self' with consecutive 
         nonnegative integers starting from len('other').
         
         Parameters
@@ -638,4 +668,15 @@ class UpDown(object):
         self_colors = {relabel_map[x]: self.coloring[x] for x in \
                        self.dag}
         ordinal_coloring.update(self_colors)
-        return UpDown(ordinal_dag, ordinal_coloring, reduced = True)
+        # get the layout of ordinal sum
+        largest_y = max(x[0] for x in other.layout.values())
+        ordinal_layout = {x:other.layout[x] for x in other.dag}
+        ordinal_layout.update(
+            {relabel_map[x]: (self.layout[x][0], 
+                 self.layout[x][1]+largest_y+1) for x in self.dag}
+                 )
+        # instantiate the game and set the layout
+        ordinal = UpDown(ordinal_dag, ordinal_coloring, reduced = True)
+        ordinal.layout = ordinal_layout
+        
+        return ordinal

@@ -15,13 +15,13 @@ def int_to_bin(n):
     Returns
     -------
     str
-        binary representation of the integer 'n'. 
+        binary representation of the integer 'n'.
 
     '''
-    return bin(n).replace("0b", "")
+    return bin(n).replace('0b', '')
 
 def nim_dag(heaps):
-    ''' Returns a directed acyclic graph corresonding to the nim heaps, 
+    ''' Returns a directed acyclic graph corresonding to the Nim heaps, 
     'heaps'.
     
     Parameters
@@ -34,7 +34,7 @@ def nim_dag(heaps):
     dict
         adjacency representation of the directed acyclic graph (adjacency 
         lists keyed by node) corresponing to' heaps'. A disjoint union of
-        directed acyclic graphs, one for each heap in 'heaps': Each is 
+        directed acyclic graphs, one for each heap in 'heaps': each is 
         comprised of consecutively linked nodes.
         
 
@@ -46,6 +46,7 @@ def nim_dag(heaps):
         heap[node_count+k-1] = []
         dag.update(heap)
         node_count += k
+        
     return dag
 
 class NimGame(UpDown):
@@ -68,8 +69,7 @@ class NimGame(UpDown):
 
         '''
         dag = nim_dag(heaps)
-        coloring = {node:0 for node in dag}
-        UpDown.__init__(self, dag, coloring, reduced = True)
+        UpDown.__init__(self, dag, reduced=True)
         self.heaps = heaps
         
     def up_play(self, x):
@@ -113,6 +113,7 @@ class NimGame(UpDown):
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
         option.coloring = {i:0 for i in option_nodes}
+        option.layout = {i: self.layout[i] for i in option_nodes}
         
         return option
     
@@ -157,6 +158,7 @@ class NimGame(UpDown):
         relabelling = {i: option_nodes[i] for i in range(len(option_nodes))}
         option.dag = digraph.relabel(option.dag, relabelling)
         option.coloring = {i:0 for i in option_nodes}
+        option.layout = {i: self.layout[i] for i in option_nodes}
         
         return option
                
@@ -177,7 +179,7 @@ class NimGame(UpDown):
         # convert binary strings to lists of bits
         bin_heaps = [list(bin_heap) for bin_heap in bin_heaps] 
         bin_heaps = [list(map(int,bin_heap)) for bin_heap in bin_heaps]
-        # compute ethe nim sum
+        # compute teh nim sum
         _nim_sum = 0
         for i in range(n):
             digit = 0
