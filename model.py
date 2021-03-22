@@ -168,3 +168,27 @@ class AlphaZeroNet(nn.Module):
         value = self.value_head(x)
         
         return policy, value
+    
+    
+class AlphaLoss(torch.nn.Module):
+
+    def __init__(self):
+        super(AlphaLoss, self).__init__()
+
+    def forward(self, 
+                predicted_value, 
+                self_play_value, 
+                predicted_policy, 
+                self_play_policy):
+        
+        # MSE of of self-play and prediceted game values
+        value_error = torch.pow(self_play_value - predicted_value, 2)
+        # cross entropy of predicted and mcts policies
+        policy_error = torch.sum(
+            (-self_play_policy * (1e-8 + predicted_policy.log())), 
+            1
+            )
+        # average of value and policy error across entire batch
+        mean_error = (value_error.view(-1) + policy_error).mean()
+        
+        return mean_error
