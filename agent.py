@@ -84,7 +84,7 @@ class Agent(object):
         path = self.path if path is None else path
         torch.save(self.model.state_dict(), path)
     
-    def load_parameterse(self, path):
+    def load_parameters(self, path=None):
         '''Load parameters to agents model from 'path'. Updates the agents
         path attribute to 'path'.
 
@@ -99,6 +99,7 @@ class Agent(object):
 
         '''
         # load parameters
+        path = self.path if path is None else path
         self._model.load_state_dict(
                 torch.load(path, map_location=self.device)
                 )
@@ -126,9 +127,9 @@ class Agent(object):
         '''
         # if the root has not been expanded, then expand...
         if not root.is_expanded:
-            probs, value = self.predict(leaf.state.encoded_state)
-            actions = leaf.state.valid_actions()
-            leaf.expand(probs, actions)
+            probs, value = self.predict(root.state.encoded_state)
+            actions = root.state.valid_actions()
+            root.expand(probs, actions)
         # perform MCTS
         for _ in range(search_iters):
             leaf = root.find_leaf()
@@ -149,7 +150,7 @@ class Agent(object):
         if temp == 0:
             policy = np.zeros(MAX_NODES, dtype=np.float32)
             max_visit = np.argmax(root.edge_visits)
-            policy[max_visit] = 1
+            policy[max_visit] = 1.0
         else:
             policy = ((root.edge_visits)**(1/temp))/np.sum(
                 (root.edge_visits)**(1/temp))
@@ -158,7 +159,7 @@ class Agent(object):
         
     def predict_next_move(self, game, current_player, search_iters):
         ''' Returns the (deterministic) best move choice predicted by the 
-        agent. This method is for use in evaluation and when playing against
+        agent. This method is for use when playing against
         the agent (or two agents playing one another) in real-time. (E.g. via 
         the play() method of the UpDown class.)
         
@@ -317,7 +318,7 @@ class Agent(object):
 
         '''
         # set directory path
-        path = './model_data' if path is None else pat
+        path = './model_data' if path is None else path
         if not os.path.isdir(path):
                    os.mkdir(path) 
         # set path to the various models  

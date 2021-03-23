@@ -92,7 +92,7 @@ class PolicyHead(nn.Module):
         # Dense layer-->Log Softmax
         x = x.view(-1, self.mix_channels)
         x = self.dense(x)
-        policy = self.softmax(x) 
+        policy = self.softmax(x)
         
         return policy
     

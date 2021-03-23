@@ -12,14 +12,13 @@ from self_play_class import SelfPlay
 from train_class import Train
 from eval_play_class import EvalPlay
 import ray
-import pickle 
 import os
 
 if __name__ == '__main__':
     
     ray.init()
     
-    # initialize ageent
+    # initialize agent
     Agent.initialize()
     
     # syncronization signals
@@ -54,22 +53,18 @@ if __name__ == '__main__':
     print('Lets go!')
     train.run.remote(replay_buffer, evaluation_signal)
     
-
     # run async evaluations each time signal arrives
-    while True:
-        
+    while True:      
         ray.get(evaluation_signal.wait.remote())
-        eval_plays = [EvalPlay.remote() for _ in range(ASYNC_EVAL_PLAYS)]      
+        evaluations = [Evaluation.remote() for _ in range(ASYNC_EVAL_PLAYS)]      
         eval_results = ray.get(
             [
-                eval_play.run.remote(
-                    eval_plays.index(eval_play)
+                evaluation.run.remote(
+                    evaluations.index(evaluation)
                     ) 
-                for eval_play in eval_plays
+                for evaluation in evaaluations
                 ]
-            )
-        
-        print(f'heres the results {eval_results}.')
+            )      
         # tally the evaluation results
         apprentice_wins = sum(eval_results)
         print(f'the apprentice won {apprentice_wins} games...')
@@ -83,7 +78,7 @@ if __name__ == '__main__':
             #send update signal to self-plays
             update_signal.send_update.remote()
             print('updates sent')
-        
+        #  free up resources by killing the evaluation actors
         for eval_play in eval_plays:
             ray.kill(eval_play)
         
