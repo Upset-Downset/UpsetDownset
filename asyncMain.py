@@ -62,12 +62,12 @@ if __name__ == '__main__':
                 evaluation.run.remote(
                     evaluations.index(evaluation)
                     ) 
-                for evaluation in evaaluations
+                for evaluation in evaluations
                 ]
             )      
         # tally and log the results 
         apprentice_wins = sum(results)
-        writer.add_scalar('Wins v.s Evaluations', apprentice_wins, eval_index)
+        writer.add_scalar('Wins', apprentice_wins, eval_index)
         print(f'the apprentice won {apprentice_wins} games...')
         update = sum(eval_results)/NUM_EVAL_PLAYS > WIN_RATIO
         
