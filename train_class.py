@@ -7,6 +7,7 @@ from model import AlphaLoss
 import numpy as np
 import torch
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 import ray
 
 
@@ -29,6 +30,7 @@ class Train(object):
                                     weight_decay=REGULAR)
         self.loss = AlphaLoss()
         self.epoch = 0
+        self.writer = SummaryWriter()
 
     def get_symmetries(self, train_data, num_symmetries):
         '''Returns 'num_symmetries' of each example in 'train_data'.
@@ -111,6 +113,7 @@ class Train(object):
             
             # calculate loss
             loss = self.loss(out_values, values, out_logits, probs)
+            self.writer.add_scalar("Loss/train", loss, self.epoch)
            
             # step
             loss.backward()
