@@ -113,7 +113,7 @@ class Train(object):
             
             # calculate loss and log it 
             loss = self.loss(out_values, values, out_logits, probs)
-            self.writer.add_scalar("Loss v.s. Epoch", loss, self.epoch)
+            self.writer.add_scalar("Loss", loss, self.epoch)
             
             loss.backward()
             self.optimizer.step()
