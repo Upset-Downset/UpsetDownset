@@ -89,7 +89,7 @@ class PolicyHead(nn.Module):
         x = self.batch_norm(x)
         x = F.leaky_relu(x)
         
-        # Dense layer-->Log Softmax
+        # Dense layer-->Softmax
         x = x.view(-1, self.mix_channels)
         x = self.dense(x)
         policy = self.softmax(x)
