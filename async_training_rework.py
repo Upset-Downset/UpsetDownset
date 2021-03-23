@@ -13,11 +13,12 @@ from train_class import Train
 from eval_play_class import EvalPlay
 import ray
 import os
+from torch.utils.tensorboard import SummaryWriter
 
 if __name__ == '__main__':
     
     ray.init()
-    
+    writer = SummaryWriter()
     # initialize agent
     Agent.initialize()
     
@@ -54,6 +55,7 @@ if __name__ == '__main__':
     train.run.remote(replay_buffer, evaluation_signal)
     
     # run async evaluations each time signal arrives
+    eval_index = 1
     while True:      
         ray.get(evaluation_signal.wait.remote())
         evaluations = [Evaluation.remote() for _ in range(ASYNC_EVAL_PLAYS)]      
@@ -67,6 +69,7 @@ if __name__ == '__main__':
             )      
         # tally the evaluation results
         apprentice_wins = sum(eval_results)
+        writer.add_scalar('Wins/Evals', apprentice_wins, eval_index)
         print(f'the apprentice won {apprentice_wins} games...')
         update = sum(eval_results)/NUM_EVAL_PLAYS > WIN_RATIO
         # send updates if neccesary
@@ -81,5 +84,6 @@ if __name__ == '__main__':
         #  free up resources by killing the evaluation actors
         for eval_play in eval_plays:
             ray.kill(eval_play)
+        eval_index += 1
         
         
