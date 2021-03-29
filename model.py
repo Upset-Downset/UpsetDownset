@@ -92,7 +92,7 @@ class PolicyHead(nn.Module):
         # Dense layer-->Softmax
         x = x.view(-1, self.mix_channels)
         x = self.dense(x)
-        policy = self.softmax(x)
+        policy = F.softmax(x, dim=1)
         
         return policy
     
@@ -179,16 +179,15 @@ class AlphaLoss(torch.nn.Module):
                 predicted_value, 
                 self_play_value, 
                 predicted_policy, 
-                self_play_policy):
-        
+                self_play_policy):     
         # MSE of of self-play and prediceted game values
-        value_error = torch.pow(self_play_value - predicted_value, 2)
+        value_error = torch.pow(self_play_value.squeeze(-1) - predicted_value, 2)
         # cross entropy of predicted and mcts policies
         policy_error = torch.sum(
-            (-self_play_policy * (1e-8 + predicted_policy.log())), 
+            (-self_play_policy * (1e-8 + predicted_policy).log()), 
             1
             )
         # average of value and policy error across entire batch
-        mean_error = (value_error.view(-1) + policy_error).mean()
+        mean_error = (value_error + policy_error).mean()
         
         return mean_error

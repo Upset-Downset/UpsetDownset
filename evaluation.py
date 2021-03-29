@@ -7,30 +7,51 @@ from gameState import GameState
 from puctNode import PUCTNode
 import numpy as np
 import ray
-import pickle 
-import os
 
 @ray.remote(num_gpus=0.075)
 class Evaluation(object):
     '''Abstract class for construction of remote evaluation actors.
     '''
-    def __init__(self):
-        ''' Instantiates a Evaluation actor
+    def __init__(self, update_id):
+        '''Instantiate an Evaluation actor
+
+        Parameters
+        ----------
+        update_id : int (nonegative)
+            the current update_id. When an Evaluation actor is instatiated the 
+            actors alpha agent pulls from the most current alpha parameters.
+    
         Returns
         -------
         None.
 
         '''
-        self.alpha_agent = Agent(path='./model_data/alpha.pt')
+        self.alpha_agent = Agent(path=f'./model_data/alpha_{update_id}.pt')
         self.apprentice_agent= Agent(path='./model_data/apprentice.pt')
         
-    def update_alpha_parameters(self):
+    def update_alpha_parameters(self, update_id):
+        '''Updates the alpha parameters. Used if an update is triggered 
+        after an evaluation.
+
+        Parameters
+        ----------
+        update_id : int (positive)
+            the index of the update to the alpha parameters. 
+            (Each time an update is triggered the update_id is incremented 
+             by 1 and then new alpha parameters are saved indexed by the 
+            current update_id.)
+
+        Returns
+        -------
+        None.
+
+        '''
         self.apprentice_agent.save_parameters(
-            path='./model_data/alpha.pt'
-            )    
+            path=f'./model_data/alpha_{update_id}.pt'
+            )
+
 
     def run(self,
-            evaluation_id,
             num_plays=PLAYS_PER_EVAL,
             search_iters=EVAL_PLAY_SEARCH_ITERS,
             markov_exp=EVAL_PLAY_MARKOV_EXP):
@@ -44,8 +65,6 @@ class Evaluation(object):
 
         Parameters
         ----------
-        evaluation_id : int (nonnegative)
-            unique identifier for the evaluation process
         num_plays : int (positive), optional
             The numnber of evaluation games to play. The default is 
             PLAYS_PER_EVAL.
@@ -62,8 +81,6 @@ class Evaluation(object):
             the number of apprentice wins.
 
         '''
-        
-        print(f'evaluation {evaluation_id} in progress...')
         # put models in eval mode...
         self.alpha_agent.model.eval()
         self.apprentice_agent.model.eval()     
@@ -74,14 +91,11 @@ class Evaluation(object):
         state_generator = GameState.state_generator(markov_exp)
         apprentice_wins = 0
         # start evaluation game play       
-        for i in range(num_plays):      
-            #store states encountered
-            states = []
-            # uniformly randomly choose which model plays first
+        for i in range(num_plays):
+            # uniformly randomly choose which agent plays first
             next_move = np.random.choice([alpha, apprentice])          
             # play a randomly generated game of upset-downset
             game_state = next(state_generator)
-            states.append(game_state.encoded_state)
             while not game_state.is_terminal_state():
                 root = PUCTNode(game_state)
                 policy = self.alpha_agent.MCTS(root, search_iters, 0) \
@@ -89,16 +103,10 @@ class Evaluation(object):
                         else self.apprentice_agent.MCTS(root, search_iters, 0)
                 move = np.random.choice(actions, p=policy)
                 game_state = root.edges[move].state
-                states.append(game_state.encoded_state)
                 next_move = 1 - next_move    
             # decide winner
             winner = 1 - next_move
             if winner == apprentice:
-                apprentice_wins += 1
-            # pickle the evaliuation data
-            filename = f'evaluation_process_{evaluiation_id}_game_{i+1}'
-            path = os.path.join('./evaluation_data', filename)
-            with open(path, 'wb') as write:
-                pickle.dump(states, write)                
+                apprentice_wins += 1               
         
         return apprentice_wins

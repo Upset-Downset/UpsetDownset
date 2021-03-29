@@ -7,8 +7,6 @@ from gameState import GameState
 from puctNode import PUCTNode
 import ray
 import numpy as np
-import os
-import pickle
 
 @ray.remote(num_gpus=0.075)
 class SelfPlay(object):
@@ -22,12 +20,12 @@ class SelfPlay(object):
         None.
 
         '''
-        self.agent = Agent(path='./model_data/alpha.pt')
+        self.agent = Agent(path='./model_data/alpha_0.pt')
         
     def run(self,
             replay_buffer,
             update_signal,
-            process_id,
+            self_play_id,
             search_iters=SELF_PLAY_SEARCH_ITERS,
             markov_exp=SELF_PLAY_MARKOV_EXP,
             temp=TEMP, 
@@ -48,7 +46,7 @@ class SelfPlay(object):
         update_signal : UpdateSignal
             remote actor for synchronization between self-play processes and 
             evaluation processes. Triggers model parameter updates.
-        process_id : int (nonnegative)
+        self_play_id : int (nonnegative)
             unique identifier for the self-play process.
         search_iters : int (positve), optional
              the number of search iterations to perform during MCTS. 
@@ -69,31 +67,32 @@ class SelfPlay(object):
         None.
 
         '''
-        
         # put agent in evaluation mode
         self.agent.model.eval()
         # the action space...
         actions = np.arange(MAX_NODES)
         # game state generator via an ongoing Markov chain
-        state_generator = GameState.state_generator(markov_exp)
-        # track the number of games played
-        idx = 1    
-        #start indefinite self-play loop
+        state_generator = GameState.state_generator(markov_exp)   
+        # start indefinite self-play loop
         while True:     
-            # check for parameter updates
-            if ray.get(update_signal.get_update.remote(process_id)):
-                print('updating self-play alpha paramaters...')
-                self.agent.load_parameters(path='./model_data/alpha.pt')
-                update_signal.confirm_update.remote(process_id)
-            
-            # get a game and play untila a terminal state is reached
+            # check for updates
+            if ray.get(update_signal.get_update.remote(self_play_id)):
+                # get current update_id
+                update_id = ray.get(update_signal.get_update_id.remote())
+                # load current alpha paramenters
+                self.agent.load_parameters(
+                    path=f'./model_data/alpha_{update_id}.pt'
+                    )
+                # reset the update signal
+                update_signal.clear_update.remote(self_play_id)
+            # get a game and play 
             initial_state = next(state_generator)
             root = PUCTNode(initial_state)
             states = []
             policies = []
             move_count = 0
             while not root.state.is_terminal_state():
-                t = temp if move_count <= temp_thrshld else 0
+                t = temp if move_count < temp_thrshld else 0
                 policy = self.agent.MCTS(root, search_iters, t)
                 move = np.random.choice(actions, p=policy)
                 states.append(root.state.encoded_state)
@@ -111,10 +110,4 @@ class SelfPlay(object):
                           in zip(states, policies, values)]     
             # add training data to replay buffer
             replay_buffer.add.remote(train_data)
-            # pickel training data      
-            filename = f'self_play_process_{process_id}_game_{idx}'
-            path = os.path.join('./self_play_data', filename)
-            with open(path, 'wb') as write:
-                pickle.dump(train_data, write)
-            # update game index
-            idx += 1
+            

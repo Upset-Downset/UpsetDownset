@@ -40,7 +40,8 @@ class Train(object):
         Parameters
         ----------
         train_data : list
-            a list of triples: state, policy and value for training from self-play.
+            a list of triples: state, policy and value for training from 
+            self-play.
 
         num_symmetries : int (positive),
             The number of symmetries to take (sampled w/ replacement).
@@ -51,9 +52,7 @@ class Train(object):
              'num_symmetries' symmetries of 'train_data'.
         ''' 
         sym_train_data = [] 
-        for train_triple in train_data:  
-            # unpack the training example
-            state, policy, value =  train_triple           
+        for state, policy, value  in train_data:            
             for _ in range(num_symmetries):
                 # get random permutation 
                 p = np.random.permutation(MAX_NODES)
@@ -62,7 +61,8 @@ class Train(object):
                 state_sym = state_sym[:,p,:]
                 # permute nodes in policy too!
                 policy_sym = policy[p]
-                sym_train_data.append((state_sym, policy_sym, value))               
+                sym_train_data.append((state_sym, policy_sym, value))   
+                
         return sym_train_data
     
     def run(self,
@@ -115,18 +115,28 @@ class Train(object):
             loss = self.loss(out_values, values, out_logits, probs)
             self.writer.add_scalar("Loss", loss, self.epoch)
             
+            # step
             loss.backward()
             self.optimizer.step()
             self.epoch += 1
-        
+            
+            # trigger evaluation if neccessary
             if self.epoch % epochs_to_eval == 0:
-                self.agent.model.save_parameters(
+                games_played = ray.get(replay_buffer.get_total_games.remote())
+                buffer_size = ray.get(replay_buffer.size.remote())
+                print(f'Total games played : {games_played}.')
+                print(f'Replay buffer size : {buffer_size}.')
+                # save apprentice parameters
+                self.agent.save_parameters(
                     path='./model_data/apprentice.pt'
                     )
+                # send evaluation signal
                 evaluation_signal.send.remote()
+                
+            # save checkpoint...
                 
             # cleanup
             del states; del probs; del values
             del out_logits; del out_values; 
-            del loss_policy; del loss_value
+            del loss
             torch.cuda.empty_cache 

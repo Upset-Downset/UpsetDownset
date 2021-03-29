@@ -79,6 +79,7 @@ class UpdateSignal(object):
 
         '''
         self.signal = np.zeros(size, dtype=bool)
+        self.update_id = 0
         
     def send_update(self):
         '''Send an update signal.
@@ -101,7 +102,7 @@ class UpdateSignal(object):
         Returns
         -------
         bool
-            True if an update is needed and Fa;se otehrwise
+            True if an update is needed and False otherwise
         '''
         return self.signal[self_play_id]
         
@@ -115,10 +116,38 @@ class UpdateSignal(object):
 
         Returns
         -------
-        None.
+        None
+        '''
+        self.signal[self_play_id] = False
+        
+    def set_update_id(self):
+        ''' Increrments update_id and returns the new value. (Each time 
+        an update occurs the update_id is first incrermented by 
+        1 and then the new alpha parameters are saved, indexed by the 
+        current update_id. 
+        
+        Returns
+        -------
+        int (positive)
+            current update_id
+            
+        '''
+        self.update_id +=1
+
+        return self.update_id
+    
+    def get_update_id(self):
+        '''Returns current update_id. (When an update signal arrives to a 
+        self-play actor the actors agent need to pull the alpha 
+        parameters saved with the most recent update id.))
+        
+        Returns
+        -------
+        int (positive)
+            current update_id. 
 
         '''
-        self.signal[process_id] = False
+        return self.update_id
         
 @ray.remote(num_cpus=0)
 class ReplayBuffer(object):

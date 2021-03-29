@@ -229,7 +229,7 @@ class Agent(object):
         return probs, value
     
     def approximate_outcome(self, game, search_iters):
-        '''Approxuimates the outcome of game. For this to malke sense the game
+        '''Approximates the outcome of game. For this to malke sense the game
         must be a normal play short partisan combinatorial game (a combinatorial 
         game which ends in a finite number of moves and the last player to 
         move wins).
@@ -324,7 +324,7 @@ class Agent(object):
         # set path to the various models  
         initial = os.path.join(path, 'initial.pt' )
         apprentice = os.path.join(path, 'apprentice.pt' )
-        alpha = os.path.join(path, 'alpha.pt' )
+        alpha = os.path.join(path, 'alpha_0.pt' )
         # save the inital parameters to each model. They shpould all be the 
         # same at the start!
         initial_model = AlphaZeroNet()

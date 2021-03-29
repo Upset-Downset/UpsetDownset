@@ -34,7 +34,7 @@ class PUCTNode(object):
         # wether node has been expanded in search
         self.is_expanded = False 
         # action a --> P(self.state, a) for all actions a
-        # to be updated with preicted move probabilities upon expansion of node
+        # to be updated with predicted move probabilities upon expansion of node
         self.edge_probs = np.zeros(MAX_NODES, dtype=np.float32)
         # valid actions from self.state
         # to be updated upon expansion of node

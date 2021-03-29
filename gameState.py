@@ -65,7 +65,7 @@ class GameState(object):
             the GameState after the node 'x' has been played. 
         '''
         # make sure the action is valid!
-        assert x in self.valid_actions(), f' {x} is not a valid action.'   
+        assert x in self.valid_actions(), f'{x} is not a valid action.'   
         # remove upset of x
         option = self.game.up_play(x) if self.current_player == UP \
             else self.game.down_play(x)    
@@ -225,7 +225,7 @@ class GameState(object):
             random_dag = uniform_random_dag(
                 MAX_NODES, 
                 exp=markov_exp,
-                X_0=start_markov
+                X0=start_markov
                 )
             # decide if the game will have all green nodes or not. and 
             # produce the coloring
