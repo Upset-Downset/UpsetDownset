@@ -211,20 +211,21 @@ class UpDown(object):
 ########################### GAMEPLAY #########################################
 ##############################################################################
     
-    def play(self, agent1= None, agent2=None,  marker='o',):
+    def play(self, agent1= None, agent2=None, marker='o'):
         ''' Interactively play the game.
         
         Parameters
         ----------
+        agent1 : Agent, optional
+            can play against an Agent or have two Agents play against 
+            one another. The default is None. (agent1 will always play first.)
+        agent2 : Agent, optional
+            can play ageainst an Agent or have two Agents play against 
+            one another. The default is None. (agent2 will always play second.)
         marker : matplotlib marker, optional
             the marker is the node style for the game plot. The default is 'o'.
             for all options: https://matplotlib.org/3.3.3/api/markers_api.html
-        agent1 : func, optional
-            can play against an agent or have two agents play against 
-            one another. The default is None. (agent1 will always play first.)
-        agent2 : func, optional
-            can play ageainst an agent or have two agents play against 
-            one another. The default is None. (agent2 will always play second.)
+
         Returns
         -------
         None.
@@ -297,12 +298,12 @@ class UpDown(object):
                 break
                       
             if cur_player == first and agent1 != None:
-                u = agent1(cur_pos, player_to_move=cur_player)
-                print(f'Agent choose {str(u)}')
+                u = agent1.predict_next_move(cur_pos, cur_player, 800)
+                print(f'The Agent choose {str(u)}')
                 time.sleep(1)
             elif cur_player == second and agent2 != None:
-                u = agent2(cur_pos, player_to_move=cur_player)
-                print(f'Agent choose {str(u)}')
+                u = agent2.predict_next_move(cur_pos, cur_player, 800)
+                print(f'TRhe Agent choose {str(u)}')
                 time.sleep(1)
             else:
                 u = int(input(f'{cur_player.capitalize()}, choose a node: '))
