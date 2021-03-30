@@ -298,13 +298,13 @@ class UpDown(object):
                 break
                       
             if cur_player == first and agent1 != None:
-                u = agent1.predict_next_move(cur_pos, cur_player, 800)
+                u = agent1.predict_next_move(cur_pos, cur_player, 400)
                 print(f'The Agent choose {str(u)}')
-                time.sleep(1)
+                time.sleep(1.5)
             elif cur_player == second and agent2 != None:
-                u = agent2.predict_next_move(cur_pos, cur_player, 800)
-                print(f'TRhe Agent choose {str(u)}')
-                time.sleep(1)
+                u = agent2.predict_next_move(cur_pos, cur_player, 400)
+                print(f'The Agent choose {str(u)}')
+                time.sleep(1.5)
             else:
                 u = int(input(f'{cur_player.capitalize()}, choose a node: '))
                 while not (u in options_dict[cur_player]):
