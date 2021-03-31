@@ -30,7 +30,6 @@ pyparsing @ file:///home/linux1/recipes/ci/pyparsing_1610983426697/work
 python-dateutil @ file:///home/ktietz/src/ci/python-dateutil_1611928101742/work
 pytz==2021.1
 PyYAML==5.4.1
-ray==1.2.0
 redis==3.5.3
 six @ file:///opt/concourse/worker/volumes/live/5b31cb27-1e37-4ca5-6e9f-86246eb206d2/volume/six_1605205320872/work
 torch==1.8.1
