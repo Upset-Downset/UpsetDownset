@@ -13,7 +13,6 @@ google-api-core==1.26.3
 googleapis-common-protos==1.53.0
 gpustat==0.6.0
 hiredis==2.0.0
-kiwisolver @ file:///opt/concourse/worker/volumes/live/0b2f3e77-eaa3-4995-7dd0-c994762fcbde/volume/kiwisolver_1612282417472/work
 matplotlib @ file:///opt/concourse/worker/volumes/live/41e8cd50-031f-4dda-5787-dd3c4f4e0f08/volume/matplotlib-suite_1613407855571/work
 msgpack==1.0.2
 numpy==1.20.2
