@@ -20,7 +20,7 @@ class GameState(object):
         game : UpDown
             a game of upset-downset.
         current_player : int (0 or 1)
-            encoded representation of the p[layer to move: 0 if Up is to move 
+            encoded representation of the player to move: 0 if Up is to move 
             and 1 if Down is to move. (See UP and DOWN in config.py)
 
         Returns

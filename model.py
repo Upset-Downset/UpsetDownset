@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+### NEED TO ADD DOC STRINGS....
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, board_shape):       
         super(ConvBlock, self).__init__()      

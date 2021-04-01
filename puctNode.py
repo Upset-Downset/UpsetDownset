@@ -33,14 +33,14 @@ class PUCTNode(object):
         self.parent  = parent  
         # wether node has been expanded in search
         self.is_expanded = False 
-        # action a --> P(self.state, a) for all actions a
-        # to be updated with predicted move probabilities upon expansion of node
-        self.edge_probs = np.zeros(MAX_NODES, dtype=np.float32)
         # valid actions from self.state
         # to be updated upon expansion of node
         self.valid_actions = []
         # children of 'self' keyed by action
         self.edges = {} 
+        # action a --> P(self.state, a) for all actions a
+        # to be updated with predicted move probabilities upon expansion of node
+        self.edge_probs = np.zeros(MAX_NODES, dtype=np.float32)
         # action a --> W(self.state, a) for all actions a
         # to be updated upon backup
         self.edge_values = np.zeros(MAX_NODES, dtype=np.float32) 
@@ -199,4 +199,3 @@ class PUCTNode(object):
         '''
         self.parent = None
         self.action = None
-        return self

@@ -190,7 +190,7 @@ class UpDown(object):
 ###############################   PLOT  ######################################
 ##############################################################################
     
-    def plot(self, marker = 'o'):
+    def plot(self, save=None, marker = 'o'):
         '''Plots the game.
 
         Parameters
@@ -198,13 +198,18 @@ class UpDown(object):
         marker : matplotlib marker, optional
             the marker is the node style for the game plot. The default is 'o'.
             for all options: https://matplotlib.org/3.3.3/api/markers_api.html.
+        save : str, optional
+            If youd like to save the plot of your game put the path to the file
+            here: save='/the/path/to/your/game/plot'. The default is None
 
         Returns
         -------
         None.
 
         '''
-        UpDownPlot(self, marker=marker)      
+        UpDownPlot(self, marker=marker)
+        if save:
+            plt.savefig(save, bbox_inches='tight', transparent=True)
         plt.show()
     
 ##############################################################################    
@@ -298,11 +303,11 @@ class UpDown(object):
                 break
                       
             if cur_player == first and agent1 != None:
-                u = agent1.predict_next_move(cur_pos, cur_player, 400)
+                u = agent1.predict_next_move(cur_pos, cur_player, 100)
                 print(f'The Agent choose {str(u)}')
                 time.sleep(1.5)
             elif cur_player == second and agent2 != None:
-                u = agent2.predict_next_move(cur_pos, cur_player, 400)
+                u = agent2.predict_next_move(cur_pos, cur_player, 100)
                 print(f'The Agent choose {str(u)}')
                 time.sleep(1.5)
             else:
