@@ -187,4 +187,3 @@ dependencies:
     - urllib3==1.26.5
     - werkzeug==2.0.1
     - yarl==1.6.3
-prefix: /home/charlie/anaconda3/envs/new_updown
