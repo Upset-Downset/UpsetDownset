@@ -23,27 +23,29 @@ tutorial and to play against a trained Alpha Zero agent checkout this [notebook]
 
 ## Upset-Downset Meets Alpha Zero
 
-We've implemented a version of DeepMind's Alpha Zero, as described in their [paper](https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf), in order to learn to play upset-downset!
+We've implemented a version of DeepMind's Alpha Zero, as described in their [paper](https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf), in order to learn to play Upset-Downset!
 
 ### Alpha Zero
 
-For those unfamiliar, Alpha Zero can be *very* briefly described as a self-play, training, evaluation feedback loop. In this loop self-play is guided by Monte Carlo Tree Search (MCTS) augmented with *move* and *outcome*  predictions via a convolutional neural network (CNN). Starting from a *game position* each iteration of MCTS samples branches of play from the game tree, each more promising than the last. Ultimatley the statistics gathered during the search lead to a superior *move* choice from the *game position* than the prediction of the CNN alone.
+For those unfamiliar, Alpha Zero can be *very* briefly described as a self-play, training, evaluation feedback loop. 
 
-In return the self-play generates data in the form of *game position*, *move*, *outcome* triples. Due to MCTS, the *move* and *outcome* here are improved versions of those predicted by the CNN given the *game position* initially. The CNN is then trained on this self-play data so as to skew predictions during MCTS towards *moves* that lead to a better *outcome* when a similar *game position* is encountered in the future.
+In this loop self-play is guided by Monte Carlo Tree Search [(MCTS)](https://en.wikipedia.org/wiki/Monte_Carlo_tree_search) augmented with *move* and *outcome*  predictions via a convolutional neural network (CNN). Starting from a *game position* each iteration of MCTS samples many branchs of play from the game tree, gathering statistics at each node of the tree and focusing in on the most promising avenues of play. However, rather than a random *playout* from previously unvisted nodes the CNN is queried for an *outcome* prediction... Ultimatley the statistics gathered during the search lead to a superior *move* choice from the *game position* than the prediction of the CNN alone.
+
+In return the self-play generates data in the form of *game position*, *move*, *outcome* triples for each position encounterd during play. Due to MCTS, the *move* and *outcome* here are improved versions of those predicted by the CNN given the *game position* initially. The CNN is then trained on this self-play data so as to skew predictions during MCTS towards *moves* that lead to a better *outcome* when a similar *game position* is encountered in the future.
 
 The CNN used in self-play is called the *alpha* agent and the CNN being trained on the self-play data is a copy of the alpha, aptly called the *apprentice*. After a fixed number of training steps an evaluation is triggered in which the alpha and apprentice agents are pitted against one another in a tournament. If the apprentice prevails (wins more than 55% of the games) then the apprentice becomes the new alpha and the story continues with the new alpha generating the self-play data for training.
 
 We found [blog] to be an excellent source of information when it came time to implememt the CNN in PyTorch. Similarly, [A Deep Dive into Monte Carlo Tree Search](https://www.moderndescartes.com/essays/deep_dive_mcts/) was a great guide when we needed to implement MCTS in Python. 
 
 ### Keeping Things Tractable
-Upset-Downset is a game played on graphs, and more precisely [Directed Acyclic Graphs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) (or [Partially Ordered Sets](https://en.wikipedia.org/wiki/Partially_ordered_set)). In general these graphs are allowed to be arbitrarily large. Dealing with arbitrarily large graphs is infeasible. However, since each move in an game of Upset-Downset creates a smaller game of Upset-Downset, we can easily tackle this issue by setting a cap on the size of the games our agent can learn to play.
+Upset-Downset is a game played on graphs, and more precisely [Directed Acyclic Graphs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) (or [Partially Ordered Sets](https://en.wikipedia.org/wiki/Partially_ordered_set)). In general these graphs are allowed to be arbitrarily large. Dealing with arbitrarily large graphs is infeasible. We can easily overcome this issue by setting a cap on the size of the games our agent can learn to play.
 
-How did we choose a cap size? Even though a modestly sized game of Upset-Downset is completed in very few moves on average, there are a large number of positions available. For example, there are ~ [10<sup>43</sup>](https://oeis.org/A001035) Upset-Downset positions amongst games starting with 18 nodes. (This is accounting for the red-blue-green node coloring and the fact that the nodes need to be labelled.) This is much less than the number of positions available on a 19x19 Go board (~ [10<sup>170</sup>](https://en.wikipedia.org/wiki/Go_and_mathematics)), but still a large space of possible positions when training on a desktop! In order to keep the number of positions tractable and training time feasible we chose to start with games of 10 nodes or less. In this case there are ~ 10<sup>16</sup> postions available. (The code is sufficently general that this number can be increased in the future.)
+How did we choose a cap size? Even though a modestly sized game of Upset-Downset is completed in very few moves on average, there are a large number of positions available. For example, there are ~ [10<sup>43</sup>](https://oeis.org/A001035) Upset-Downset positions amongst games starting with 18 nodes. (This is accounting for the red-blue-green node coloring and the fact that the nodes need to be labelled.) This is much less than the number of positions available on a 19x19 Go board (~ [10<sup>170</sup>](https://en.wikipedia.org/wiki/Go_and_mathematics)), but still a large space of possible positions when training on a desktop! In order to keep the number of positions tractable and training time feasible we chose to cap our games at starting with 10 nodes or less. In this case there are ~ 10<sup>16</sup> postions available. (The code is sufficently general that this number can be increased in the future.)
 
 ### An Agent Is Only As Good As the Games We Can Generate
-Another issue we ran into part of the way into this project was *how to generate games to play in an unbiased way*. It turns out, this is a nontrivial question in mathematics about generating partially ordered sets. We started with a naive approach, but soon realized the "random" games we were generating were not at all uniform among the set of posets. Uniform generation of games is an important exploration step in training our Alpha Zero agent since in Upset-Downset the starting position is variable. This is distinct from Go, Chess and many well-known board games where positions in the game progress through play from a stationary starting positon.
+Since starting positions are variable in Upset-Downset the uniform generation of games is an important exploration step in training our Alpha Zero agent This is distinct from Go, Chess and many well-known board games where positions in the game progress through play from a stationary starting positon. To insure the agent saw a representative sample of games we needed to generate games in a uniform way. It turns out, this is a nontrivial question in mathematics about generating partially ordered sets. We started with a naive approach, but soon realized the "random" games we were generating were not at all uniform among the set of posets of size 10. 
 
-To insure the agent saw a representative sample of games we needed to generate games in a uniform way. After a bit of searching, we came across this [paper](https://arxiv.org/abs/1810.05446) which describes a Markov process for generating random posets uniformly. You can see an example of this in the gif at the top of this document. You can also read more about it in this [notebook](https://github.com/Upset-Downset/UpsetDownset/blob/master/generating_random_games.ipynb).
+After a bit of searching, we came across this [paper](https://arxiv.org/abs/1810.05446) which describes a Markov process for generating random posets uniformly! You can see an example of this in the gif at the top of this document. You can also read more about it in this [notebook](https://github.com/Upset-Downset/UpsetDownset/blob/master/generating_random_games.ipynb).
 
 ### Encoding Upset-Downset for Use With a CNN
 Next we needed to encode Upset-Downset into a format digestable by a CNN. We first represent a game on a board rather than a graph! To do so we use the [adjaceny matrix](https://en.wikipedia.org/wiki/Adjacency_matrix) of the [transitive closure](https://en.wikipedia.org/wiki/Transitive_closure) of the graph underlying the game:
@@ -68,19 +70,19 @@ To get the final representation to feed into the CNN for prediction we convert a
  
  ### Measuring the Agent's Learning
  How can we tell our agent is learning? There are essentially three tests. To explain these we look at the example of our agent that was trained on games of 
- having at most 10 nodes. During this training, ~1.5 million games were played over ~3 days and ~10 million training steps. The alpha agent updated 6 times. 
+ having at most 10 nodes. During this training, 1.5 million games were played over 3 days and ~0 million training steps. The alpha agent updated 6 times. 
  You can find the model parameters [here](https://github.com/Upset-Downset/UpsetDownset/tree/master/model_params).
  
  The first (and most fun) test is simply to play against the agent and see if it can beat you. As mentioned before, you can do this in this 
  [notebook](https://github.com/Upset-Downset/UpsetDownset/blob/master/intro.ipynb).
  
- The second (and most esoteric and ureliable) test to determine if the agent is learning is by plotting the loss function.
+ The second (not to mention most ureliable and esoteric) test to determine if the agent is learning is by plotting the loss function over training.
  Below you can see the agent's loss function over the first 6 million trainig steps. This seems to tell us that the agent is learning 
  on the data we are feeding it; coupled with the fact that it is updating (which implies it's winning games against former agent iterations) is good
- evidence that the agent is learning and getting stronger. However, by itself, this metric is a little hard to read. 
+ evidence that the agent is getting better. However, by itself, this metric is a little hard to read. 
  Luckily we have an even better way to know the agent is learning...
  
- ### Outcome and Approximate Outcomes Functions
+ #### Outcome and Approximate Outcomes Functions
  Since each upset-downset game will end and one of the players must win, for any particular game of upset-dowsnet the outcome is fixed and must be one of the 
  following: the first player to move can force a win, the second player to move can force a win, the **Up** player can force a win no matter who moves first,
  or the **Down** player can force a win no matter who moves first. By the phrase "player can force a win" we simply mean that on their turn there wlll always be 
@@ -91,7 +93,7 @@ To get the final representation to feed into the CNN for prediction we convert a
  is a bare bones, brute force recursive algorithm, so we *can't* really use it for games that are too big (> 25 nodes or so depending on your system). Though, 
  for games having 10 nodes it is fine.
  
- Let's flip the perspective and assume we have an agent that will always win if it can. An agent that always makes a winning move if it is available. 
+ Now, let's flip the perspective and assume we have an agent that will always win if it can. An agent that always makes a winning move if it is available. 
  We should then be able to recover the outcome of any game and hopefully solve the recursivity problem. The issue is then how do we get a perfect agent?
  Well, this is hard... However, if the agent we train is learning we should be able to use the agent to approximate the outcome of any game. This is
  precisely what we've done! In fact, for our toy example of games of size 10, we can compare the approximate outcome function to the actual and see if
